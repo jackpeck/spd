@@ -9,6 +9,8 @@ from pathlib import Path
 
 import fire
 import wandb
+from torch import Tensor
+from torch.utils.data import Dataset
 
 from spd.configs import Config, TMSTaskConfig
 from spd.experiments.tms.models import TMSModel, TMSTargetRunInfo
@@ -87,11 +89,32 @@ def main(
         value_range=(0.0, 1.0),
         synced_inputs=synced_inputs,
     )
+
+    class SingleItemDataset(Dataset[tuple[Tensor, Tensor]]):
+        def __init__(self, item: tuple[Tensor, Tensor]):
+            self.item = item
+
+        def __len__(self) -> int:
+            return 2**31
+
+        def generate_batch(self, batch_size: int) -> tuple[Tensor, Tensor]:
+            x, y = self.item
+            return x.expand(batch_size, -1), y.expand(batch_size, -1)
+
+    dataset_item = next(
+        item
+        for item in (dataset.generate_batch(batch_size=1) for _ in iter(int, 1))
+        if item[0].sum() > 0
+    )
+
+    print(f"{dataset_item=}")
+    single_item_dataset = SingleItemDataset(dataset_item)
+
     train_loader = DatasetGeneratedDataLoader(
-        dataset, batch_size=config.microbatch_size, shuffle=False
+        single_item_dataset, batch_size=config.microbatch_size, shuffle=False
     )
     eval_loader = DatasetGeneratedDataLoader(
-        dataset, batch_size=config.eval_batch_size, shuffle=False
+        single_item_dataset, batch_size=config.eval_batch_size, shuffle=False
     )
 
     tied_weights = None
