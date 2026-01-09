@@ -52,17 +52,17 @@ class MLPCiFn(nn.Module):
         self.hidden_dims = hidden_dims
 
         self.layers = nn.Sequential()
-        # for i in range(len(hidden_dims)):
-        #     input_dim = 1 if i == 0 else hidden_dims[i - 1]
-        #     output_dim = hidden_dims[i]
-        #     self.layers.append(ParallelLinear(C, input_dim, output_dim, nonlinearity="relu"))
-        #     self.layers.append(nn.GELU())
-        # self.layers.append(ParallelLinear(C, hidden_dims[-1], 1, nonlinearity="linear"))
+        for i in range(len(hidden_dims)):
+            input_dim = 1 if i == 0 else hidden_dims[i - 1]
+            output_dim = hidden_dims[i]
+            self.layers.append(ParallelLinear(C, input_dim, output_dim, nonlinearity="relu"))
+            self.layers.append(nn.GELU())
+        self.layers.append(ParallelLinear(C, hidden_dims[-1], 1, nonlinearity="linear"))
 
     @override
     def forward(self, x: Float[Tensor, "... C"]) -> Float[Tensor, "... C"]:
         x = einops.rearrange(x, "... C -> ... C 1")
-        # x = self.layers(x)
+        x = self.layers(x)
         assert x.shape[-1] == 1, "Last dimension should be 1 after the final layer"
         return x[..., 0]
 
