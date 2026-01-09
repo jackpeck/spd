@@ -110,7 +110,8 @@ def main(
     #     if item[0].sum() > 0.8
     # )
 
-    v = Tensor([[0.9, 0.0, 0.0, 0.5, 0.0]])
+    # v = Tensor([[0.9, 0.0, 0.0, 0.5, 0.0]])
+    v = Tensor([[0.3, 0.0, 0.0, 0.7, 0.0]])
     # v = Tensor([[0.0, 0.0, 0.0, 0.3, 0.7]])
     dataset_item = v, v.clone().detach()
 

@@ -26,6 +26,8 @@ loss_metric_configs:
     coeff: 1.0
   - classname: "StochasticReconLayerwiseLoss"
     coeff: 1.0
+  - classname: "FaithfulnessLoss"
+    coeff: 100
 output_loss_type: mse
 
 # --- Training ---

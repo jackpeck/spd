@@ -39,6 +39,13 @@ EXPERIMENT_REGISTRY: dict[str, ExperimentConfig] = {
         expected_runtime=4,
         canonical_run="wandb:goodfire/spd/runs/nbejm03m",
     ),
+    "tms_5-2_faithfull": ExperimentConfig(
+        task_name="tms",
+        decomp_script=Path("spd/experiments/tms/tms_decomposition.py"),
+        config_path=Path("spd/experiments/tms/tms_5-2_config_using_faithfullness_loss.yaml"),
+        expected_runtime=4,
+        canonical_run="wandb:goodfire/spd/runs/nbejm03m",
+    ),
     "tms_5-2-id": ExperimentConfig(
         task_name="tms",
         decomp_script=Path("spd/experiments/tms/tms_decomposition.py"),
