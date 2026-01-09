@@ -41,11 +41,7 @@ from spd.utils.distributed_utils import (
     is_main_process,
     sync_across_processes,
 )
-from spd.utils.general_utils import (
-    dict_safe_update_,
-    extract_batch_data,
-    get_scheduled_value,
-)
+from spd.utils.general_utils import dict_safe_update_, extract_batch_data, get_scheduled_value
 from spd.utils.logging_utils import get_grad_norms_dict, local_log
 from spd.utils.module_utils import expand_module_patterns, replace_std_values_in_layernorm
 from spd.utils.run_utils import save_file
@@ -203,8 +199,13 @@ def optimize(
 
     assert len(component_params) > 0, "No parameters found in components to optimize"
 
-    optimized_params = component_params + ci_fn_params
-    optimizer = optim.AdamW(optimized_params, lr=config.lr_schedule.start_val, weight_decay=0)
+    optimizer = optim.AdamW(
+        [
+            {"params": component_params, "weight_decay": 0.0},
+            {"params": ci_fn_params, "weight_decay": config.ci_fn_weight_decay},
+        ],
+        lr=config.lr_schedule.start_val,
+    )
 
     logger.info(f"LR scheduler: {config.lr_schedule.fn_type}")
 

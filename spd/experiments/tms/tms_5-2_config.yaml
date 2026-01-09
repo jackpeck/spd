@@ -36,6 +36,7 @@ lr_schedule:
   fn_type: cosine
   warmup_pct: 0.0
   final_val_frac: 0.0
+# ci_fn_weight_decay: 0.9
 
 # --- Faithfulness Warmup ---
 faithfulness_warmup_steps: 200

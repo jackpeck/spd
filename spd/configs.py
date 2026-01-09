@@ -475,6 +475,10 @@ class Config(BaseConfig):
         default=None,
         description="If set, apply grad norm clipping to the parameters of the CI functions",
     )
+    ci_fn_weight_decay: NonNegativeFloat = Field(
+        default=0.0,
+        description="Weight decay for the CI functions",
+    )
 
     # --- Faithfulness Warmup ---
     faithfulness_warmup_steps: NonNegativeInt = Field(

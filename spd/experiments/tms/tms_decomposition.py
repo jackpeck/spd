@@ -101,20 +101,27 @@ def main(
             x, y = self.item
             return x.expand(batch_size, -1), y.expand(batch_size, -1)
 
-    dataset_item = next(
-        item
-        for item in (dataset.generate_batch(batch_size=1) for _ in iter(int, 1))
-        if item[0].sum() > 0
-    )
+    # def get_nth(iterator, n=0):
+    #     get_nth(iterator, n=n - 1)
+
+    # dataset_item = next(
+    #     item
+    #     for item in (dataset.generate_batch(batch_size=1) for _ in iter(int, 1))
+    #     if item[0].sum() > 0.8
+    # )
+
+    v = Tensor([[0.9, 0.0, 0.0, 0.5, 0.0]])
+    # v = Tensor([[0.0, 0.0, 0.0, 0.3, 0.7]])
+    dataset_item = v, v.clone().detach()
 
     print(f"{dataset_item=}")
     single_item_dataset = SingleItemDataset(dataset_item)
 
     train_loader = DatasetGeneratedDataLoader(
-        single_item_dataset, batch_size=config.microbatch_size, shuffle=False
+        dataset, batch_size=config.microbatch_size, shuffle=False
     )
     eval_loader = DatasetGeneratedDataLoader(
-        single_item_dataset, batch_size=config.eval_batch_size, shuffle=False
+        dataset, batch_size=config.eval_batch_size, shuffle=False
     )
 
     tied_weights = None
