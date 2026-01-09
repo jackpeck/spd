@@ -23,7 +23,7 @@ class ParallelLinear(nn.Module):
 
     @override
     def forward(self, x: Float[Tensor, "... C d_in"]) -> Float[Tensor, "... C d_out"]:
-        return einops.einsum(x, self.W, "... C d_in, C d_in d_out -> ... C d_out") + self.b * 0
+        return einops.einsum(x, self.W, "... C d_in, C d_in d_out -> ... C d_out") + self.b
 
 
 class Linear(nn.Module):
@@ -39,9 +39,10 @@ class Linear(nn.Module):
 
     @override
     def forward(self, x: Float[Tensor, "... d_in"]) -> Float[Tensor, "... d_out"]:
-        return einops.einsum(x, self.W, "... d_in, d_in d_out -> ... d_out") + self.b * 0
+        return einops.einsum(x, self.W, "... d_in, d_in d_out -> ... d_out") + self.b
 
 
+# The MLPCiFn takes the scalar "inner activation" (component activation x @ V) for each component as input, while VectorMLPCiFn takes the full input vector.
 class MLPCiFn(nn.Module):
     """MLP-based function that creates a scalar output for each component."""
 
