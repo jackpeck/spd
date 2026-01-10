@@ -18,14 +18,20 @@ def _ci_masked_recon_layerwise_loss_update(
     batch: Int[Tensor, "..."] | Float[Tensor, "..."],
     target_out: Float[Tensor, "... vocab"],
     ci: dict[str, Float[Tensor, "... C"]],
+    last_position_only: bool = False,
 ) -> tuple[Float[Tensor, ""], int]:
     sum_loss = torch.tensor(0.0, device=batch.device)
     n_examples = 0
     mask_infos = make_mask_infos(ci, weight_deltas_and_masks=None)
     for module_name, mask_info in mask_infos.items():
         out = model(batch, mask_infos={module_name: mask_info})
-        loss = calc_sum_recon_loss_lm(pred=out, target=target_out, loss_type=output_loss_type)
-        n_examples += out.shape.numel() if output_loss_type == "mse" else out.shape[:-1].numel()
+        loss = calc_sum_recon_loss_lm(
+            pred=out, target=target_out, loss_type=output_loss_type, last_position_only=last_position_only
+        )
+        if last_position_only:
+            n_examples += out.shape[0] * out.shape[-1] if output_loss_type == "mse" else out.shape[0]
+        else:
+            n_examples += out.shape.numel() if output_loss_type == "mse" else out.shape[:-1].numel()
         sum_loss += loss
     return sum_loss, n_examples
 
@@ -42,6 +48,7 @@ def ci_masked_recon_layerwise_loss(
     batch: Int[Tensor, "..."] | Float[Tensor, "..."],
     target_out: Float[Tensor, "... vocab"],
     ci: dict[str, Float[Tensor, "... C"]],
+    last_position_only: bool = False,
 ) -> Float[Tensor, ""]:
     sum_loss, n_examples = _ci_masked_recon_layerwise_loss_update(
         model=model,
@@ -49,6 +56,7 @@ def ci_masked_recon_layerwise_loss(
         batch=batch,
         target_out=target_out,
         ci=ci,
+        last_position_only=last_position_only,
     )
     return _ci_masked_recon_layerwise_loss_compute(sum_loss, n_examples)
 
