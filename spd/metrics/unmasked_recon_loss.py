@@ -17,6 +17,7 @@ def _unmasked_recon_loss_update(
     output_loss_type: Literal["mse", "kl"],
     batch: Int[Tensor, "..."] | Float[Tensor, "..."],
     target_out: Float[Tensor, "... vocab"],
+    last_position_only: bool = False,
 ) -> tuple[Float[Tensor, ""], int]:
     all_ones_mask_infos = make_mask_infos(
         # (C,) will broadcast to (B, S, C)
@@ -26,8 +27,13 @@ def _unmasked_recon_loss_update(
         }
     )
     out = model(batch, mask_infos=all_ones_mask_infos)
-    loss = calc_sum_recon_loss_lm(pred=out, target=target_out, loss_type=output_loss_type)
-    n_examples = out.shape.numel() if output_loss_type == "mse" else out.shape[:-1].numel()
+    loss = calc_sum_recon_loss_lm(
+        pred=out, target=target_out, loss_type=output_loss_type, last_position_only=last_position_only
+    )
+    if last_position_only:
+        n_examples = out.shape[0] * out.shape[-1] if output_loss_type == "mse" else out.shape[0]
+    else:
+        n_examples = out.shape.numel() if output_loss_type == "mse" else out.shape[:-1].numel()
     return loss, n_examples
 
 
@@ -42,12 +48,14 @@ def unmasked_recon_loss(
     output_loss_type: Literal["mse", "kl"],
     batch: Int[Tensor, "..."] | Float[Tensor, "..."],
     target_out: Float[Tensor, "... vocab"],
+    last_position_only: bool = False,
 ) -> Float[Tensor, ""]:
     sum_loss, n_examples = _unmasked_recon_loss_update(
         model,
         output_loss_type,
         batch,
         target_out,
+        last_position_only,
     )
     return _unmasked_recon_loss_compute(sum_loss, n_examples)
 

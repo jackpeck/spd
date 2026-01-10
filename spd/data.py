@@ -13,6 +13,7 @@ from spd.base_config import BaseConfig
 from spd.configs import Config, LMTaskConfig
 from spd.log import logger
 from spd.utils.distributed_utils import DistributedState
+from datasets import DatasetDict
 
 
 class DatasetConfig(BaseConfig):
@@ -146,6 +147,7 @@ def tokenize_and_concatenate(
 
 def create_data_loader(
     dataset_config: DatasetConfig,
+    dataset,
     batch_size: int,
     buffer_size: int,
     dist_state: DistributedState | None = None,
@@ -183,12 +185,24 @@ def create_data_loader(
         A tuple of the DataLoader and the tokenizer.
     """
 
-    dataset = load_dataset(
-        dataset_config.name,
-        streaming=dataset_config.streaming,
-        split=dataset_config.split,
-        trust_remote_code=False,
-    )
+    # print(f"{dist_state=}")
+
+    # dataset = load_dataset(
+    #     dataset_config.name,
+    #     streaming=dataset_config.streaming,
+    #     split=dataset_config.split,
+    #     trust_remote_code=False,
+    # )
+
+    # def make_single_item_dataset_dict(dataset_dict):
+    #     ds = dataset_dict["train"].select([0])
+    #     return DatasetDict({key: ds for key in dataset_dict.keys()})
+
+    # dataset = make_single_item_dataset_dict(dataset)
+
+    # print(f'{dataset["train"][0]=}')
+
+
     seed = dataset_config.seed if dataset_config.seed is not None else global_seed
 
     if dataset_config.streaming:

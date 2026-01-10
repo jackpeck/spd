@@ -23,6 +23,7 @@ from spd.utils.distributed_utils import (
 from spd.utils.general_utils import resolve_class, save_pre_run_info, set_seed
 from spd.utils.run_utils import setup_decomposition_run
 from spd.utils.wandb_utils import init_wandb
+from datasets import load_dataset
 
 
 @with_distributed_cleanup
@@ -134,8 +135,20 @@ def main(
         case None:
             train_rank_microbatch_size = config.microbatch_size
 
+
+    dataset = load_dataset(
+        train_data_config.name,
+        streaming=train_data_config.streaming,
+        split=train_data_config.split,
+        trust_remote_code=False,
+    )
+    dataset_single_item = dataset.select([0]*10000)
+
+    print(f'{dataset_single_item[0]=}')
+
     train_loader, _tokenizer = create_data_loader(
         dataset_config=train_data_config,
+        dataset=dataset_single_item,
         batch_size=train_rank_microbatch_size,
         buffer_size=config.task_config.buffer_size,
         global_seed=config.seed,
@@ -165,6 +178,7 @@ def main(
 
     eval_loader, _ = create_data_loader(
         dataset_config=eval_data_config,
+        dataset=dataset_single_item,
         batch_size=eval_rank_batch_size,
         buffer_size=config.task_config.buffer_size,
         global_seed=config.seed + 1,
