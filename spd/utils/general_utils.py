@@ -231,22 +231,8 @@ def calc_sum_recon_loss_lm(
     pred: Float[Tensor, "... vocab"],
     target: Float[Tensor, "... vocab"],
     loss_type: Literal["mse", "kl"],
-    last_position_only: bool = False,
 ) -> Float[Tensor, ""]:
-    """Calculate the reconstruction loss for a language model without reduction.
-
-    Args:
-        pred: Predicted logits with shape [..., vocab] where ... is typically [batch, seq].
-        target: Target logits with same shape as pred.
-        loss_type: Type of loss to compute ("mse" or "kl").
-        last_position_only: If True, only compute loss on the last sequence position.
-            Assumes pred/target have shape [batch, seq, vocab].
-    """
-    if last_position_only:
-        # Slice to only keep the last sequence position: [batch, seq, vocab] -> [batch, 1, vocab]
-        pred = pred[:, -1:, :]
-        target = target[:, -1:, :]
-
+    """Calculate the reconstruction loss for a language model without reduction."""
     match loss_type:
         case "mse":
             loss = ((pred - target) ** 2).sum()

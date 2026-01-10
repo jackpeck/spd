@@ -23,7 +23,6 @@ def _stochastic_recon_layerwise_loss_update(
     target_out: Float[Tensor, "... vocab"],
     ci: dict[str, Float[Tensor, "... C"]],
     weight_deltas: dict[str, Float[Tensor, "d_out d_in"]] | None,
-    last_position_only: bool = False,
 ) -> tuple[Float[Tensor, ""], int]:
     assert ci, "Empty ci"
     device = get_obj_device(ci)
@@ -43,14 +42,9 @@ def _stochastic_recon_layerwise_loss_update(
     for stochastic_mask_infos in stochastic_mask_infos_list:
         for module_name, mask_info in stochastic_mask_infos.items():
             out = model(batch, mask_infos={module_name: mask_info})
-            loss = calc_sum_recon_loss_lm(
-                pred=out, target=target_out, loss_type=output_loss_type, last_position_only=last_position_only
-            )
+            loss = calc_sum_recon_loss_lm(pred=out, target=target_out, loss_type=output_loss_type)
 
-            if last_position_only:
-                n_examples += out.shape[0] * out.shape[-1] if output_loss_type == "mse" else out.shape[0]
-            else:
-                n_examples += out.shape.numel() if output_loss_type == "mse" else out.shape[:-1].numel()
+            n_examples += out.shape.numel() if output_loss_type == "mse" else out.shape[:-1].numel()
             sum_loss += loss
     return sum_loss, n_examples
 
@@ -70,7 +64,6 @@ def stochastic_recon_layerwise_loss(
     target_out: Float[Tensor, "... vocab"],
     ci: dict[str, Float[Tensor, "... C"]],
     weight_deltas: dict[str, Float[Tensor, "d_out d_in"]] | None,
-    last_position_only: bool = False,
 ) -> Float[Tensor, ""]:
     sum_loss, n_examples = _stochastic_recon_layerwise_loss_update(
         model=model,
@@ -81,7 +74,6 @@ def stochastic_recon_layerwise_loss(
         target_out=target_out,
         ci=ci,
         weight_deltas=weight_deltas,
-        last_position_only=last_position_only,
     )
     return _stochastic_recon_layerwise_loss_compute(sum_loss, n_examples)
 

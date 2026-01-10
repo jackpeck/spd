@@ -21,7 +21,6 @@ def _ci_masked_recon_subset_loss_update(
     target_out: Float[Tensor, "... vocab"],
     ci: dict[str, Float[Tensor, "... C"]],
     router: Router,
-    last_position_only: bool = False,
 ) -> tuple[Float[Tensor, ""], int]:
     subset_routing_masks = router.get_masks(
         module_names=model.target_module_paths,
@@ -34,14 +33,8 @@ def _ci_masked_recon_subset_loss_update(
     )
     out = model(batch, mask_infos=mask_infos)
     loss_type = output_loss_type
-    loss = calc_sum_recon_loss_lm(
-        pred=out, target=target_out, loss_type=loss_type, last_position_only=last_position_only
-    )
-    if last_position_only:
-        n_examples = out.shape[0] * out.shape[-1] if loss_type == "mse" else out.shape[0]
-    else:
-        n_examples = out.shape.numel() if loss_type == "mse" else out.shape[:-1].numel()
-    return loss, n_examples
+    loss = calc_sum_recon_loss_lm(pred=out, target=target_out, loss_type=loss_type)
+    return loss, out.shape.numel() if loss_type == "mse" else out.shape[:-1].numel()
 
 
 def _ci_masked_recon_subset_loss_compute(
@@ -57,7 +50,6 @@ def ci_masked_recon_subset_loss(
     target_out: Float[Tensor, "... vocab"],
     ci: dict[str, Float[Tensor, "... C"]],
     routing: SubsetRoutingType,
-    last_position_only: bool = False,
 ) -> Float[Tensor, ""]:
     sum_loss, n_examples = _ci_masked_recon_subset_loss_update(
         model=model,
@@ -66,7 +58,6 @@ def ci_masked_recon_subset_loss(
         target_out=target_out,
         ci=ci,
         router=get_subset_router(routing, batch.device),
-        last_position_only=last_position_only,
     )
     return _ci_masked_recon_subset_loss_compute(sum_loss, n_examples)
 

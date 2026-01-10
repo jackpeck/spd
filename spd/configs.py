@@ -452,10 +452,6 @@ class Config(BaseConfig):
         ...,
         description="Metric used to measure recon error between model outputs and targets",
     )
-    loss_last_position_only: bool = Field(
-        default=False,
-        description="If True, only compute reconstruction loss on the last sequence position",
-    )
 
     # --- Training ---
     lr_schedule: ScheduleConfig = Field(..., description="Learning rate schedule configuration")

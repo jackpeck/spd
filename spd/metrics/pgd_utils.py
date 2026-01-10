@@ -25,7 +25,6 @@ def pgd_masked_recon_loss_update(
     output_loss_type: Literal["mse", "kl"],
     router: Router,
     pgd_config: PGDConfig,
-    last_position_only: bool = False,
 ) -> tuple[Float[Tensor, ""], int]:
     """Central implementation of PGD masked reconstruction loss.
 
@@ -60,7 +59,6 @@ def pgd_masked_recon_loss_update(
         target_out=target_out,
         output_loss_type=output_loss_type,
         batch_dims=batch_dims,
-        last_position_only=last_position_only,
     )
 
     for _ in range(pgd_config.n_steps):
@@ -165,7 +163,6 @@ def _forward_with_adv_sources(
     target_out: Float[Tensor, "... vocab"],
     output_loss_type: Literal["mse", "kl"],
     batch_dims: tuple[int, ...],
-    last_position_only: bool = False,
 ):
     expanded_adv_sources = {k: v.expand(*batch_dims, -1) for k, v in adv_sources.items()}
     adv_sources_components: dict[str, Float[Tensor, "*batch_dims C"]]
@@ -186,18 +183,11 @@ def _forward_with_adv_sources(
     )
     out = model(batch, mask_infos=mask_infos)
 
-    sum_loss = calc_sum_recon_loss_lm(
-        pred=out, target=target_out, loss_type=output_loss_type, last_position_only=last_position_only
-    )
+    sum_loss = calc_sum_recon_loss_lm(pred=out, target=target_out, loss_type=output_loss_type)
 
-    if last_position_only:
-        n_examples = (
-            target_out.shape[0] * target_out.shape[-1] if output_loss_type == "mse" else target_out.shape[0]
-        )
-    else:
-        n_examples = (
-            target_out.shape.numel() if output_loss_type == "mse" else target_out.shape[:-1].numel()
-        )
+    n_examples = (
+        target_out.shape.numel() if output_loss_type == "mse" else target_out.shape[:-1].numel()
+    )
 
     return sum_loss, n_examples
 

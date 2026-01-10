@@ -282,7 +282,6 @@ def optimize(
                 use_delta_component=config.use_delta_component,
                 n_mask_samples=config.n_mask_samples,
                 output_loss_type=config.output_loss_type,
-                loss_last_position_only=config.loss_last_position_only,
             )
             microbatch_total_loss.div_(config.gradient_accumulation_steps).backward()
 

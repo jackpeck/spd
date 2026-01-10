@@ -22,7 +22,6 @@ def pgd_recon_loss(
     ci: dict[str, Float[Tensor, "... C"]],
     weight_deltas: dict[str, Float[Tensor, "d_out d_in"]] | None,
     pgd_config: PGDConfig,
-    last_position_only: bool = False,
 ) -> Float[Tensor, ""]:
     sum_loss, n_examples = pgd_masked_recon_loss_update(
         model=model,
@@ -33,7 +32,6 @@ def pgd_recon_loss(
         output_loss_type=output_loss_type,
         router=AllLayersRouter(),
         pgd_config=pgd_config,
-        last_position_only=last_position_only,
     )
     return sum_loss / n_examples
 
