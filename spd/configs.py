@@ -148,6 +148,13 @@ class LMTaskConfig(BaseConfig):
     )
 
 
+class MultitaskSparseParityConfig(BaseConfig):
+    task_name: Literal["multitask_sparse_parity"] = Field(
+        default="multitask_sparse_parity",
+        description="Identifier for multitask sparse parity",
+    )
+
+
 class ModulePatternInfoConfig(BaseConfig):
     """Configuration for a module pattern with its number of components.
 
@@ -371,7 +378,9 @@ EvalOnlyMetricConfigType = (
 )
 MetricConfigType = LossMetricConfigType | EvalOnlyMetricConfigType
 
-TaskConfig = TMSTaskConfig | ResidMLPTaskConfig | LMTaskConfig | IHTaskConfig
+TaskConfig = (
+    TMSTaskConfig | ResidMLPTaskConfig | LMTaskConfig | IHTaskConfig | MultitaskSparseParityConfig
+)
 
 SamplingType = Literal["continuous", "binomial"]
 
