@@ -8,7 +8,6 @@ import torch
 from jaxtyping import Float, Int
 from torch import Tensor, nn
 from torch.utils.hooks import RemovableHandle
-from transformers.pytorch_utils import Conv1D as RadfordConv1D
 
 from spd.configs import Config, SamplingType
 from spd.interfaces import RunInfo
@@ -129,6 +128,8 @@ class ComponentModel[BatchT, OutputT](nn.Module):
             self.upper_leaky_fn = SIGMOID_TYPES[sigmoid_type]
 
     def target_weight(self, module_name: str) -> Float[Tensor, "rows cols"]:
+        from transformers.pytorch_utils import Conv1D as RadfordConv1D
+
         target_module = self.target_model.get_submodule(module_name)
 
         match target_module:
@@ -147,6 +148,8 @@ class ComponentModel[BatchT, OutputT](nn.Module):
         target_module: nn.Module,
         C: int,
     ) -> Components:
+        from transformers.pytorch_utils import Conv1D as RadfordConv1D
+
         match target_module:
             case nn.Linear():
                 d_out, d_in = target_module.weight.shape
@@ -203,6 +206,8 @@ class ComponentModel[BatchT, OutputT](nn.Module):
         ci_fn_hidden_dims: list[int],
     ) -> nn.Module:
         """Helper to create a causal importance function (ci_fn) based on ci_fn_type and module type."""
+        from transformers.pytorch_utils import Conv1D as RadfordConv1D
+
         if isinstance(target_module, nn.Embedding):
             assert ci_fn_type == "mlp", "Embedding modules only supported for ci_fn_type='mlp'"
 
