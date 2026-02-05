@@ -22,8 +22,6 @@ model = MultitaskSparseParityModel()
 
 out_dir = ExecutionStamp.create(run_type="spd", create_snapshot=False).out_dir
 
-# open(out_dir / "metrics.jsonl", "w").close()
-
 optimize(
     target_model=model,
     config=config,
