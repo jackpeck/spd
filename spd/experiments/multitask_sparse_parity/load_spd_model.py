@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import wandb
 from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSparseParityModel
 from torch.utils.data import DataLoader
+from wandb_utils import load_wandb_model_artifact
 
 from spd.configs import Config
 from spd.interfaces import RunInfo
@@ -24,25 +25,13 @@ class SPDRunInfo(RunInfo[Config]):
     checkpoint_prefix = "model"
 
 
-spd_run_dir_path = Path("/Users/jack/spd_out/spd/s-dd7179ca/")
-
-run_info = SPDRunInfo.from_path("/Users/jack/spd_out/spd/s-dd7179ca/model_60000.pth")
-
-config = run_info.config
+config = SPDRunInfo.from_path("/Users/jack/spd_out/spd/s-dd7179ca/model_60000.pth").config
 
 target_model_wandb_run_path = "mutate/multitask-sparse-parity/yzq90nhu"
 
-target_model_download_dir = spd_run_dir_path / "tmp" / "target_model" / target_model_wandb_run_path
-if not os.path.exists(target_model_download_dir / "model.pt"):
-    os.makedirs(target_model_download_dir, exist_ok=True)
-    api = wandb.Api()
-    run = api.run(target_model_wandb_run_path)
-    artifact = [artifact for artifact in run.logged_artifacts() if artifact.type == "model"][-1]
-    artifact_dir = artifact.download(root=target_model_download_dir)
-else:
-    artifact_dir = target_model_download_dir
+artifact_path = load_wandb_model_artifact(target_model_wandb_run_path)
 target_model = MultitaskSparseParityModel()
-target_model.load_state_dict(torch.load(f"{artifact_dir}/model.pt"))
+target_model.load_state_dict(torch.load(artifact_path))
 target_model.eval()
 
 
