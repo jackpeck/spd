@@ -173,3 +173,5 @@ cython_debug/
 
 **/*.db
 **/*.db*
+
+*.claude*
