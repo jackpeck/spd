@@ -6,6 +6,7 @@ from wandb_utils import load_wandb_model_artifact
 from spd.configs import Config
 from spd.models.batch_and_loss_fns import recon_loss_kl
 from spd.simple_trainer import optimize
+from spd.utils.general_utils import save_pre_run_info
 from spd.utils.run_utils import ExecutionStamp
 
 config = Config.from_file("config1.yaml")
@@ -36,3 +37,13 @@ optimize(
     reconstruction_loss=recon_loss_kl,
     out_dir=out_dir,
 )
+
+save_pre_run_info(
+    save_to_wandb=config.wandb_project is not None,
+    out_dir=out_dir,
+    spd_config=config,
+    sweep_params=None,
+    target_model=target_model,
+    train_config=None,
+    task_name=config.task_config.task_name,
+)  # save final_config.yaml

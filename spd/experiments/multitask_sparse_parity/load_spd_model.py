@@ -75,11 +75,11 @@ ci = torch.cat([ci_dict[layer] for layer in layer_names], dim=1)
 
 print(ci.shape)
 
-component_ci_threshold = -1
+component_ci_threshold = 0.3
 mask_infos = make_mask_infos(
-    component_masks={k: torch.ones_like(v) for k, v in ci_dict.items()},
+    # component_masks={k: torch.ones_like(v) for k, v in ci_dict.items()},
     # component_masks={k: v for k, v in ci_dict.items()},
-    # component_masks={k: (v > component_ci_threshold).float() for k, v in ci_dict.items()},
+    component_masks={k: (v > component_ci_threshold).float() for k, v in ci_dict.items()},
     routing_masks="all",
 )
 
@@ -93,3 +93,7 @@ print(loss_using_components)
 #     reduction="none",
 # )
 # print(f"mean loss using components = {loss_by_token_using_components.mean().item()}")
+
+
+for k, v in ci_dict.items():
+    print(k, (v > component_ci_threshold).float().mean())
