@@ -84,7 +84,7 @@ n_examples_until_dead: 1368400
 
 pretrained_model_class: MultitaskSparseParityModel
 # pretrained_model_path: null
-pretrained_model_name: wandb:mutate/multitask-sparse-parity/runs/yzq90nhu
+pretrained_model_name: wandb:mutate/multitask-sparse-parity/runs/1rvgs5j9
 # pretrained_model_output_attr: idx_0
 # tokenizer_name: SimpleStories/test-SimpleStories-gpt2-1.25M
 

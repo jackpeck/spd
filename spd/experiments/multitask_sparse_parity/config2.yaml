@@ -1,0 +1,82 @@
+# copied from > run from Lucius with parameters that work well on TMS 40-10-id https://wandb.ai/goodfire/spd/runs/s-a62f1dc6
+
+# wandb_project: spd
+wandb_run_name: null
+wandb_run_name_prefix: ''
+seed: 0
+n_mask_samples: 1
+ci_fn_type: shared_mlp
+ci_fn_hidden_dims:
+- 100
+sampling: continuous
+sigmoid_type: leaky_hard
+module_info:
+  - module_pattern: "l*"
+    C: 300
+identity_module_info: null
+use_delta_component: true
+loss_metric_configs:
+- coeff: 0.0003
+  classname: ImportanceMinimalityLoss
+  pnorm: 2.0
+  # pnorm_2: 1.0
+  beta: 0.0
+  p_anneal_start_frac: 1.0
+  p_anneal_final_p: null
+  p_anneal_end_frac: 1.0
+  eps: 1.0e-12
+- coeff: 1.0
+  classname: StochasticReconSubsetLoss
+  routing:
+    type: uniform_k_subset
+- coeff: 1.0
+  classname: FaithfulnessLoss
+output_loss_type: mse
+lr_schedule:
+  start_val: 0.001
+  warmup_pct: 0.0
+  final_val_frac: 0.0
+  fn_type: cosine
+steps: 20000
+batch_size: 4096
+gradient_accumulation_steps: 1
+grad_clip_norm_components: null
+grad_clip_norm_ci_fns: null
+faithfulness_warmup_steps: 200
+faithfulness_warmup_lr: 0.01
+faithfulness_warmup_weight_decay: 0.1
+train_log_freq: 100
+eval_freq: 1000
+eval_batch_size: 4096
+slow_eval_freq: 5000
+n_eval_steps: 100
+slow_eval_on_first_step: true
+save_freq: null
+eval_metric_configs:
+- classname: CIHistograms
+  n_batches_accum: 5
+- classname: ComponentActivationDensity
+- classname: CI_L0
+  groups:
+    total:
+    - '*'
+    layer_0:
+    - h.0.*
+- classname: CIMeanPerComponent
+- coeff: null
+  classname: StochasticHiddenActsReconLoss
+- coeff: null
+  init: random
+  step_size: 0.1
+  n_steps: 20
+  mask_scope: shared_across_batch
+  classname: PGDReconLoss
+ci_alive_threshold: 0.1
+n_examples_until_dead: 4096000
+pretrained_model_class: MultitaskSparseParityModel
+pretrained_model_path: wandb:mutate/multitask-sparse-parity/runs/1rvgs5j9
+pretrained_model_name: null
+pretrained_model_output_attr: null
+
+task_config:
+  task_name: multitask_sparse_parity

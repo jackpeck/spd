@@ -9,7 +9,7 @@ from spd.simple_trainer import optimize
 from spd.utils.general_utils import save_pre_run_info
 from spd.utils.run_utils import ExecutionStamp
 
-config = Config.from_file("config1.yaml")
+config = Config.from_file("config2.yaml")
 
 batch_sz = 64
 train_loader = DataLoader(

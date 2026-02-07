@@ -13,7 +13,7 @@ from spd.models.component_model import (
 from spd.models.components import make_mask_infos
 from spd.utils.module_utils import expand_module_patterns
 
-run_info = SPDRunInfo.from_path("/Users/jack/spd_out/spd/s-7a2de791/model_60000.pth")
+run_info = SPDRunInfo.from_path("/Users/jack/spd_out/spd/s-4857ce4c/model_20000.pth")
 config = run_info.config
 
 target_model_wandb_run_path = "mutate/multitask-sparse-parity/1rvgs5j9"
@@ -75,7 +75,7 @@ ci = torch.cat([ci_dict[layer] for layer in layer_names], dim=1)
 
 print(ci.shape)
 
-component_ci_threshold = 0.3
+component_ci_threshold = 0.4
 mask_infos = make_mask_infos(
     # component_masks={k: torch.ones_like(v) for k, v in ci_dict.items()},
     # component_masks={k: v for k, v in ci_dict.items()},
