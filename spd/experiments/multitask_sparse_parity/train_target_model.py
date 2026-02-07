@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
 from multitask_sparse_parity import (
     MultitaskSparseParityDataset,
     MultitaskSparseParityModel,
@@ -10,7 +11,7 @@ from multitask_sparse_parity import (
     get_batch_for_task_ids,
     n_control_bits,
 )
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import DataLoader
 
 model = MultitaskSparseParityModel()
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
@@ -25,7 +26,7 @@ dataloader = DataLoader(dataset, batch_size=None)
 for step, (task_ids, task_bits, parity) in enumerate(dataloader):
     optimizer.zero_grad()
 
-    logits = model(task_ids, task_bits)
+    logits = model((task_ids, task_bits, ()))
     loss = F.cross_entropy(logits, parity)
 
     loss.backward()
@@ -36,7 +37,7 @@ for step, (task_ids, task_bits, parity) in enumerate(dataloader):
         losses_by_task_for_step = []
         with torch.no_grad():
             task_ids, task_bits, parity = get_batch(batch_sz=64)
-            logits = model(task_ids, task_bits)
+            logits = model((task_ids, task_bits, ()))
             loss = F.cross_entropy(logits, parity)
             losses_by_task_for_step.append(loss.item())
 
@@ -44,7 +45,7 @@ for step, (task_ids, task_bits, parity) in enumerate(dataloader):
                 task_ids, task_bits, parity = get_batch_for_task_ids(
                     batch_sz=64, task_ids=torch.tensor(i)
                 )
-                logits = model(task_ids, task_bits)
+                logits = model((task_ids, task_bits, ()))
                 loss = F.cross_entropy(logits, parity)
                 # print(i, loss.item())
                 losses_by_task_for_step.append(loss.item())
@@ -65,14 +66,10 @@ plt.plot(
 )
 
 plt.plot(x, losses_by_step_and_task[:, 0], label="overall", color="red", linewidth=1)
-
-
 plt.legend()
 plt.xscale("log")
 plt.show()
 
-
-import wandb
 
 wandb.init(project="multitask-sparse-parity")
 

@@ -1,6 +1,7 @@
 import torch
 from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSparseParityModel
 from torch.utils.data import DataLoader
+from wandb_utils import load_wandb_model_artifact
 
 from spd.configs import Config
 from spd.models.batch_and_loss_fns import recon_loss_kl
@@ -17,13 +18,16 @@ eval_loader = DataLoader(
     MultitaskSparseParityDataset(batch_sz=batch_sz, size=100_000), batch_size=None
 )
 
-model = MultitaskSparseParityModel()
+target_model_wandb_run_path = "mutate/multitask-sparse-parity/1rvgs5j9"
+artifact_path = load_wandb_model_artifact(target_model_wandb_run_path)
+target_model = MultitaskSparseParityModel()
+target_model.load_state_dict(torch.load(artifact_path))
 
 
 out_dir = ExecutionStamp.create(run_type="spd", create_snapshot=False).out_dir
 
 optimize(
-    target_model=model,
+    target_model=target_model,
     config=config,
     device="cpu",
     train_loader=train_loader,
