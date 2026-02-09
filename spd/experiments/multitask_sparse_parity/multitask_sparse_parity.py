@@ -53,6 +53,7 @@ class MultitaskSparseParityModel(nn.Module):
         super().__init__()
         self.l1 = nn.Linear(n_control_bits + n_task_bits, d_mlp)
         self.l2 = nn.Linear(d_mlp, 2)
+        self.d_mlp = d_mlp
 
     def forward(self, batch):
         task_ids, task_bits, targets = batch

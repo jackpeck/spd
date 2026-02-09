@@ -50,15 +50,19 @@ class Storer:
 
         return data["value"]
 
-
-storer = Storer()
-
-
-key = "20260206/multitask_sparse_parity/parameter_scaling/v1/d_mlp=200/val_loss/numpy"
-# value = torch.tensor(0.123)
-value = np.array(0.123)
+    def exists(self, key):
+        path = self.get_path(key)
+        return path.exists()
 
 
-# storer.write(key, value)
+# storer = Storer()
 
-print(storer.read(key))
+
+# key = "20260206/multitask_sparse_parity/parameter_scaling/v1/d_mlp=200/val_loss/numpy"
+# # value = torch.tensor(0.123)
+# value = np.array(0.123)
+
+
+# # storer.write(key, value)
+
+# print(storer.read(key))
