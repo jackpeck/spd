@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,16 @@ NP_PREFIX = "np:"
 class Storer:
     def __init__(self, root_path=Path("./metrics/")):
         self.root_path = root_path
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(root_path={self.root_path!r})"
+
+    def add_prefix(self, prefix):
+        self.root_path = self.root_path / prefix
+
+    def add_datestamp_prefix(self):
+        datestamp = datetime.now().strftime("%Y%m%d")
+        self.add_prefix(datestamp)
 
     def get_path(self, key):
         return self.root_path / (key + ".pt")

@@ -14,12 +14,13 @@ n_xored_bits = 4
 batch_sz = 64
 
 storer = Storer()
+storer.add_datestamp_prefix()
 
 
-for d_mlp in [10, 30, 100, 300, 1000, 3000]:
+for d_mlp in [10, 20, 30, 70, 100, 300, 1000, 3000]:
     # for d_mlp in [20, 70]:
     for seed in range(3):
-        key = f"20260206/multitask_sparse_parity/parameter_scaling/v1/d_mlp={d_mlp}/seed={seed}/val_loss"
+        key = f"multitask_sparse_parity/parameter_scaling/v1/d_mlp={d_mlp}/seed={seed}/val_loss"
         if storer.exists(key):
             print(f"{key=} exists, skipping")
             continue
