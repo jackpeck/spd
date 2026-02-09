@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 class TrainConfig:
     d_mlp: int = 256
     seed: int = 0
-    steps: int = 150000
+    steps: int = 300000
     lr: float = 1e-3
     n_control_bits: int = 20
     n_task_bits: int = 30
@@ -34,90 +34,90 @@ class TrainConfig:
         return hashlib.sha256(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
 
 
-config = TrainConfig()
+for d_mlp in [32, 64, 128, 256, 512]:
+    config = TrainConfig(d_mlp=d_mlp)
 
-storer = Storer()
-storer.add_datestamp_prefix()
-storer.add_prefix(f"train_mtsp_model_uniform_task_distribution/v10/{config.cache_key()}")
-print(storer)
+    storer = Storer()
+    storer.add_datestamp_prefix()
+    storer.add_prefix(f"train_mtsp_model_uniform_task_distribution/v10/{config.cache_key()}")
+    # print(storer)
 
-torch.manual_seed(config.seed)
-model = MultitaskSparseParityModel(
-    d_mlp=config.d_mlp, n_control_bits=config.n_control_bits, n_task_bits=config.n_task_bits
-)
-# batch_sz = 64
-# steps = 30000
-dataset = MultitaskSparseParityDataset(
-    n_control_bits=config.n_control_bits,
-    n_task_bits=config.n_task_bits,
-    n_xored_bits=config.n_xored_bits,
-    task_distribution_decay_rate=0,
-    batch_sz=config.batch_sz,
-    size=config.steps,
-)
-storer.add_prefix(f"model/{config.steps}")
-key = "model"
-if not storer.exists(key):
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    torch.manual_seed(config.seed)
+    model = MultitaskSparseParityModel(
+        d_mlp=config.d_mlp, n_control_bits=config.n_control_bits, n_task_bits=config.n_task_bits
+    )
+    # batch_sz = 64
+    # steps = 30000
+    dataset = MultitaskSparseParityDataset(
+        n_control_bits=config.n_control_bits,
+        n_task_bits=config.n_task_bits,
+        n_xored_bits=config.n_xored_bits,
+        task_distribution_decay_rate=0,
+        batch_sz=config.batch_sz,
+        size=config.steps,
+    )
+    storer.add_prefix(f"model/{config.steps}")
+    key = "model"
+    if not storer.exists(key):
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
-    losses_by_step_and_task = []
+        losses_by_step_and_task = []
 
-    train_dataloader = DataLoader(dataset, batch_size=None)
+        train_dataloader = DataLoader(dataset, batch_size=None)
 
-    for step, (task_ids, task_bits, parity) in enumerate(train_dataloader):
-        optimizer.zero_grad()
+        for step, (task_ids, task_bits, parity) in enumerate(train_dataloader):
+            optimizer.zero_grad()
 
+            logits = model((task_ids, task_bits, ()))
+            loss = F.cross_entropy(logits, parity)
+
+            loss.backward()
+            optimizer.step()
+            if step % 100 == 0 or step == config.steps - 1:
+                print(f"{step=}", loss.item())
+
+                losses_by_task_for_step = []
+                with torch.no_grad():
+                    task_ids, task_bits, parity = dataset.get_batch(batch_sz=64)
+                    logits = model((task_ids, task_bits, ()))
+                    val_loss = F.cross_entropy(logits, parity)
+                    losses_by_task_for_step.append(val_loss.item())
+
+                    for i in range(config.n_control_bits):
+                        task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
+                            batch_sz=64, task_ids=torch.tensor(i)
+                        )
+                        logits = model((task_ids, task_bits, ()))
+                        loss = F.cross_entropy(logits, parity)
+                        # print(i, loss.item())
+                        losses_by_task_for_step.append(loss.item())
+
+                losses_by_step_and_task.append(losses_by_task_for_step)
+
+        losses_by_step_and_task = np.array(losses_by_step_and_task)
+
+        state = model.state_dict()
+        storer.write(key, state)
+        storer.write("losses_by_step_and_task", losses_by_step_and_task)
+
+    model.load_state_dict(storer.read(key))
+    losses_by_step_and_task = storer.read("losses_by_step_and_task")
+    torch.manual_seed(0)
+    task_ids, task_bits, parity = dataset.get_batch(batch_sz=1024)
+    logits = model((task_ids, task_bits, ()))
+    val_loss = F.cross_entropy(logits, parity)
+    # print(val_loss)
+
+    losses_by_task = []
+    for i in range(config.n_control_bits):
+        task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
+            batch_sz=1000, task_ids=torch.tensor(i)
+        )
         logits = model((task_ids, task_bits, ()))
         loss = F.cross_entropy(logits, parity)
-
-        loss.backward()
-        optimizer.step()
-        if step % 100 == 0 or step == config.steps - 1:
-            print(f"{step=}", loss.item())
-
-            losses_by_task_for_step = []
-            with torch.no_grad():
-                task_ids, task_bits, parity = dataset.get_batch(batch_sz=64)
-                logits = model((task_ids, task_bits, ()))
-                val_loss = F.cross_entropy(logits, parity)
-                losses_by_task_for_step.append(val_loss.item())
-
-                for i in range(config.n_control_bits):
-                    task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
-                        batch_sz=64, task_ids=torch.tensor(i)
-                    )
-                    logits = model((task_ids, task_bits, ()))
-                    loss = F.cross_entropy(logits, parity)
-                    # print(i, loss.item())
-                    losses_by_task_for_step.append(loss.item())
-
-            losses_by_step_and_task.append(losses_by_task_for_step)
-
-    losses_by_step_and_task = np.array(losses_by_step_and_task)
-
-    state = model.state_dict()
-    storer.write(key, state)
-    storer.write("losses_by_step_and_task", losses_by_step_and_task)
-
-model.load_state_dict(storer.read(key))
-losses_by_step_and_task = storer.read("losses_by_step_and_task")
-torch.manual_seed(0)
-task_ids, task_bits, parity = dataset.get_batch(batch_sz=1024)
-logits = model((task_ids, task_bits, ()))
-val_loss = F.cross_entropy(logits, parity)
-print(val_loss)
-
-
-losses_by_task = []
-for i in range(config.n_control_bits):
-    task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
-        batch_sz=1000, task_ids=torch.tensor(i)
-    )
-    logits = model((task_ids, task_bits, ()))
-    loss = F.cross_entropy(logits, parity)
-    losses_by_task.append(loss.item())
-losses_by_task = torch.tensor(losses_by_task)
-print((losses_by_task < torch.log(torch.tensor(1.5))).float().mean())
+        losses_by_task.append(loss.item())
+    losses_by_task = torch.tensor(losses_by_task)
+    print((losses_by_task < torch.log(torch.tensor(1.5))).float().mean())
 
 
 x = np.arange(losses_by_step_and_task.shape[0]) * 100
