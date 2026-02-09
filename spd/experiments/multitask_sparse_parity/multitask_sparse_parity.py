@@ -5,7 +5,16 @@ from torch.utils.data import IterableDataset
 
 
 class MultitaskSparseParityDataset(IterableDataset):
-    def __init__(self, n_control_bits, n_task_bits, n_xored_bits, batch_sz, seed=0, size=None):
+    def __init__(
+        self,
+        n_control_bits,
+        n_task_bits,
+        n_xored_bits,
+        batch_sz,
+        task_distribution_decay_rate,
+        seed=0,
+        size=None,
+    ):
         super().__init__()
         self.batch_sz = batch_sz
         self.size = size
@@ -13,6 +22,8 @@ class MultitaskSparseParityDataset(IterableDataset):
         self.n_control_bits = n_control_bits
         self.n_task_bits = n_task_bits
         self.n_xored_bits = n_xored_bits
+
+        self.task_distribution_decay_rate = task_distribution_decay_rate
 
         rng = torch.Generator()
         rng.manual_seed(0)
@@ -24,7 +35,10 @@ class MultitaskSparseParityDataset(IterableDataset):
 
     def get_batch(self, batch_sz):
         probs = F.normalize(
-            (torch.arange(self.n_control_bits, dtype=torch.float) + 1) ** -(0.2 + 1), p=1, dim=0
+            (torch.arange(self.n_control_bits, dtype=torch.float) + 1)
+            ** -(self.task_distribution_decay_rate),
+            p=1,
+            dim=0,
         )
         task_ids = torch.multinomial(probs, batch_sz, replacement=True)
 

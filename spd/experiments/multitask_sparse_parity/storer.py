@@ -7,6 +7,9 @@ import torch
 
 TORCH_PREFIX = "torch:"
 NP_PREFIX = "np:"
+DICT_PREFIX = "dict:"
+dict_sentinel = "__dict__sentinel"
+value_suffix = "value"
 
 
 class Storer:
@@ -27,39 +30,42 @@ class Storer:
         return self.root_path / (key + ".pt")
 
     def write(self, key, value, overwrite_if_exists=False):
-        d = {}
-        d["value"] = value
-        converted = {}
-
-        for k, v in d.items():
-            if isinstance(v, torch.Tensor):
-                converted[TORCH_PREFIX + k] = v
-            elif isinstance(v, np.ndarray):
-                converted[NP_PREFIX + k] = torch.from_numpy(v)
+        data = None
+        if isinstance(value, dict):
+            data = value
+            data[dict_sentinel] = torch.tensor(0)
+        else:
+            data = {}
+            # d["value"] = value
+            if isinstance(value, torch.Tensor):
+                data[TORCH_PREFIX + value_suffix] = value
+            elif isinstance(value, np.ndarray):
+                data[NP_PREFIX + value_suffix] = torch.from_numpy(value)
             else:
                 raise ValueError(
-                    f"this only supports torch tensors and numpy arrays, found {type(v)}"
+                    f"this only supports torch tensors and numpy arrays and dicts, found {type(value)}"
                 )
 
         path = self.get_path(key)
         if not overwrite_if_exists and path.exists():
             raise FileExistsError(f"File already exists: {path}")
         path.parent.mkdir(parents=True, exist_ok=True)
-        safetensors.torch.save_file(converted, path)
+        safetensors.torch.save_file(data, path)
 
     def read(self, key):
         path = self.get_path(key)
         converted = safetensors.torch.load_file(path)
-        data = {}
-        for k, v in converted.items():
-            if k.startswith(TORCH_PREFIX):
-                data[k[len(TORCH_PREFIX) :]] = v
-            elif k.startswith(NP_PREFIX):
-                data[k[len(NP_PREFIX) :]] = v.numpy()
+
+        if dict_sentinel in converted:
+            del converted[dict_sentinel]
+            return converted
+        else:
+            if (TORCH_PREFIX + value_suffix) in converted:
+                return converted[(TORCH_PREFIX + value_suffix)]
+            elif (NP_PREFIX + value_suffix) in converted:
+                return converted[(NP_PREFIX + value_suffix)].numpy()
             else:
                 raise RuntimeError("shouldn't happen")
-
-        return data["value"]
 
     def exists(self, key):
         path = self.get_path(key)
