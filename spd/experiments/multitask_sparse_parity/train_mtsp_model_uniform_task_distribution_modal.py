@@ -166,6 +166,7 @@ dataset = MultitaskSparseParityDataset(
 storer.add_prefix(f"model/{config.steps}")
 key = "model"
 assert storer.exists(key)
+print(storer.exists(key))
 model.load_state_dict(storer.read(key))
 losses_by_step_and_task = storer.read("losses_by_step_and_task")
 torch.manual_seed(0)

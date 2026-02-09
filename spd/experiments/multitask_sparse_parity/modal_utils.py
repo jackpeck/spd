@@ -1,6 +1,15 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import modal
+
+
+def file_exists_on_modal_volume(remote_path, volume_name):
+    volume = modal.Volume.from_name(volume_name)
+    parent = str(PurePosixPath(remote_path).parent)
+    try:
+        return any(e.path == remote_path for e in volume.listdir(parent))
+    except modal.exception.NotFoundError:
+        return False
 
 
 def get_file_from_modal_volume_and_cache_locally(
@@ -14,8 +23,8 @@ def get_file_from_modal_volume_and_cache_locally(
 
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
-    vol = modal.Volume.from_name(volume_name)
-    data = b"".join(vol.read_file(f"/{remote_path}"))
+    volume = modal.Volume.from_name(volume_name)
+    data = b"".join(volume.read_file(f"/{remote_path}"))
     local_path.write_bytes(data)
     # print(f"Downloaded {remote_path} -> {local_path}")
 

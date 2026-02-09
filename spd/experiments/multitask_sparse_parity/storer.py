@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import safetensors.torch
 import torch
-from modal_utils import get_file_from_modal_volume_and_cache_locally
+from modal_utils import file_exists_on_modal_volume, get_file_from_modal_volume_and_cache_locally
 
 TORCH_PREFIX = "torch:"
 NP_PREFIX = "np:"
@@ -109,6 +109,14 @@ class Storer:
             )
 
     def exists(self, key):
+        path = self.get_path(key)
+
+        if self.under_modal_volume and not self.on_modal:
+            modal_path = self.get_modal_path_from_local_path(path)
+            exists_remotely = file_exists_on_modal_volume(modal_path, "mtsp_results")
+            if not exists_remotely:
+                return False
+
         self.pull_locally_if_modal_volume(key)
         path = self.get_path(key)
         return path.exists()
