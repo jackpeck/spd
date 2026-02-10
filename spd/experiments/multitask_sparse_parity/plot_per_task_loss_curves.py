@@ -7,7 +7,7 @@ from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSpars
 from storer import Storer
 from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 
-d_mlp = 64
+d_mlp = 128
 storer = Storer("/modal_volume/mtsp_results/metrics/")
 config = TrainConfig(d_mlp=d_mlp, seed=1)
 

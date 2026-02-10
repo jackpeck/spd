@@ -79,9 +79,13 @@ df = pd.DataFrame(rows)
 grouped = df.groupby("d_mlp")["task_learnt_proportion"]
 means = grouped.mean()
 stds = grouped.std()
+counts = grouped.count()
 
-plt.errorbar(means.index, means.values, yerr=stds.values * 2, fmt="o-", capsize=4)
+plt.errorbar(
+    means.index, means.values, yerr=stds.values * 2 / np.sqrt(counts.values), fmt="o-", capsize=4
+)
 plt.xlabel("d_mlp")
 plt.ylabel("proportion of tasks under 0.5 bits prediction error")
 # plt.xlim(0, 500)
+# plt.yscale("log")
 plt.show()

@@ -39,11 +39,11 @@ class TrainConfig:
     seed: int = 0
     steps: int = 50_000
     lr: float = 1e-3
-    n_control_bits: int = 20
+    n_control_bits: int = 10
     n_task_bits: int = 30
     n_xored_bits: int = 4
     task_distribution_decay_rate: float = 0
-    batch_sz: int = 1024
+    batch_sz: int = 64
     code_version: str = "v1"
     eval_batch_sz: int = 1024
 
