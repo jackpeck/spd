@@ -11,9 +11,13 @@ from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 
 rows = []
 
+
+d_mlps = np.geomspace(16, 512, 11).round().astype(int)
 for seed in range(5):
     # for d_mlp in [32, 64, 128, 256, 512]:
-    for d_mlp in np.geomspace(32, 1024, 15).round().astype(int):
+    # for d_mlp in np.geomspace(32, 1024, 15).round().astype(int):
+    # for d_mlp in np.geomspace(16, 64, 8).round().astype(int):
+    for d_mlp in d_mlps:
         storer = Storer("/modal_volume/mtsp_results/metrics/")
         config = TrainConfig(d_mlp=d_mlp, seed=seed)
 
@@ -50,7 +54,7 @@ for seed in range(5):
             losses_by_task = []
             for i in range(config.n_control_bits):
                 task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
-                    batch_sz=1000, task_ids=torch.tensor(i)
+                    batch_sz=1024, task_ids=torch.tensor(i)
                 )
                 logits = model((task_ids, task_bits, ()))
                 loss = F.cross_entropy(logits, parity)
@@ -79,5 +83,5 @@ stds = grouped.std()
 plt.errorbar(means.index, means.values, yerr=stds.values * 2, fmt="o-", capsize=4)
 plt.xlabel("d_mlp")
 plt.ylabel("proportion of tasks under 0.5 bits prediction error")
-plt.xlim(0, 500)
+# plt.xlim(0, 500)
 plt.show()

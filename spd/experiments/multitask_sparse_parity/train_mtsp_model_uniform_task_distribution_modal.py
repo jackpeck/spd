@@ -7,9 +7,17 @@ import json
 from dataclasses import asdict, dataclass
 
 import modal
+
+# import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+# import wandb
+from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSparseParityModel
+from storer import Storer
+from torch.utils.data import DataLoader
 
 image = (
     modal.Image.debian_slim()
@@ -24,27 +32,20 @@ app = modal.App(
     volumes={"/mtsp_results": modal.Volume.from_name("mtsp_results", create_if_missing=True)},
 )
 
-# import matplotlib.pyplot as plt
-import numpy as np
-
-# import wandb
-from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSparseParityModel
-from storer import Storer
-from torch.utils.data import DataLoader
-
 
 @dataclass(frozen=True)
 class TrainConfig:
     d_mlp: int = 256
     seed: int = 0
-    steps: int = 100_000
+    steps: int = 50_000
     lr: float = 1e-3
     n_control_bits: int = 20
     n_task_bits: int = 30
     n_xored_bits: int = 4
     task_distribution_decay_rate: float = 0
-    batch_sz: int = 64
+    batch_sz: int = 1024
     code_version: str = "v1"
+    eval_batch_sz: int = 1024
 
     def cache_key(self):
         return hashlib.sha256(
@@ -59,7 +60,7 @@ class TrainConfig:
 # for d_mlp in [32, 64, 128, 256, 512]:
 
 
-@app.function()
+@app.function(timeout=360)
 def train_model(config):
     print(config)
     storer = Storer("/modal_volume/mtsp_results/metrics/")
@@ -103,14 +104,14 @@ def train_model(config):
 
                 losses_by_task_for_step = []
                 with torch.no_grad():
-                    task_ids, task_bits, parity = dataset.get_batch(batch_sz=64)
+                    task_ids, task_bits, parity = dataset.get_batch(batch_sz=config.eval_batch_sz)
                     logits = model((task_ids, task_bits, ()))
                     val_loss = F.cross_entropy(logits, parity)
                     losses_by_task_for_step.append(val_loss.item())
 
                     for i in range(config.n_control_bits):
                         task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
-                            batch_sz=64, task_ids=torch.tensor(i)
+                            batch_sz=config.eval_batch_sz, task_ids=torch.tensor(i)
                         )
                         logits = model((task_ids, task_bits, ()))
                         loss = F.cross_entropy(logits, parity)
@@ -192,9 +193,8 @@ def train_model(config):
 #     print((losses_by_task < torch.log(torch.tensor(1.5))).float().mean())
 
 
-# config = TrainConfig(d_mlp=64)
-# train_model(config)
-import itertools
+# config = TrainConfig(n_xored_bits=10)
+# train_model.local(config)
 
 
 @app.local_entrypoint()
@@ -203,8 +203,8 @@ def main():
     # train_model.remote(config)
 
     # d_mlps = [32, 64, 128, 256, 512]
-    d_mlps = np.geomspace(32, 1024, 15).round().astype(int)
-    # d_mlps = [41]
+    # d_mlps = np.geomspace(32, 2756, 19).round().astype(int)
+    d_mlps = np.geomspace(16, 512, 11).round().astype(int)
     seeds = list(range(5))
 
     configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
