@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -54,7 +54,7 @@ class Storer:
         self.root_path = self.root_path / prefix
 
     def add_datestamp_prefix(self):
-        datestamp = datetime.now().strftime("%Y%m%d")
+        datestamp = datetime.now(timezone(timedelta(hours=-8))).strftime("%Y%m%d")
         self.add_prefix(datestamp)
 
     def get_path(self, key):
