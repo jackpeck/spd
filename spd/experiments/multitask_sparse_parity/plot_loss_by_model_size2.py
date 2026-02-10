@@ -12,9 +12,10 @@ from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 rows = []
 
 for seed in range(5):
+    # for seed in [0]:
     # for d_mlp in [32, 64, 128, 256, 512]:
     for d_mlp in np.geomspace(32, 1024, 15).round().astype(int):
-        # d_mlp = 64
+        # for d_mlp in [181]:
         storer = Storer("/modal_volume/mtsp_results/metrics/")
         config = TrainConfig(d_mlp=d_mlp, seed=seed)
 
@@ -46,16 +47,25 @@ for seed in range(5):
         val_loss = F.cross_entropy(logits, parity)
         print(val_loss)
 
-        losses_by_task = []
-        for i in range(config.n_control_bits):
-            task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
-                batch_sz=1000, task_ids=torch.tensor(i)
+        key = "task_learnt_proportion"
+        # print(config)
+
+        if not storer.exists(key):
+            losses_by_task = []
+            for i in range(config.n_control_bits):
+                task_ids, task_bits, parity = dataset.get_batch_for_task_ids(
+                    batch_sz=1000, task_ids=torch.tensor(i)
+                )
+                logits = model((task_ids, task_bits, ()))
+                loss = F.cross_entropy(logits, parity)
+                losses_by_task.append(loss.item())
+            losses_by_task = torch.tensor(losses_by_task)
+            task_learnt_proportion = (
+                (losses_by_task < torch.log(torch.tensor(2)) / 2).float().mean()
             )
-            logits = model((task_ids, task_bits, ()))
-            loss = F.cross_entropy(logits, parity)
-            losses_by_task.append(loss.item())
-        losses_by_task = torch.tensor(losses_by_task)
-        task_learnt_proportion = (losses_by_task < torch.log(torch.tensor(1.5))).float().mean()
+            storer.write(key, task_learnt_proportion)
+
+        task_learnt_proportion = storer.read(key)
 
         row = {
             **dataclasses.asdict(config),
@@ -100,7 +110,8 @@ stds = grouped.std()
 
 plt.errorbar(means.index, means.values, yerr=stds.values * 2, fmt="o-", capsize=4)
 plt.xlabel("d_mlp")
-plt.ylabel("val_loss")
+plt.ylabel("proportion of tasks under 0.5 bits prediction error")
+plt.xlim(0, 500)
 # plt.yscale("log")
 # plt.xscale("log")
 plt.show()

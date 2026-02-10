@@ -85,8 +85,16 @@ class Storer:
         safetensors.torch.save_file(data, path)
 
     def read(self, key):
+        # print(key)
+        # print(self.exists(key))
+
         self.pull_locally_if_modal_volume(key)
+
         path = self.get_path(key)
+
+        # print(path)
+        # print("opiuoi", path.exists())
+
         converted = safetensors.torch.load_file(path)
 
         if dict_sentinel in converted:
@@ -103,23 +111,27 @@ class Storer:
     def pull_locally_if_modal_volume(self, key):
         if self.under_modal_volume and not self.on_modal:
             path = self.get_path(key)
-            modal_path = self.get_modal_path_from_local_path(path)
-            get_file_from_modal_volume_and_cache_locally(
-                modal_path, "./modal_volume_cache", "mtsp_results"
-            )
+            if not path.exists():
+                modal_path = self.get_modal_path_from_local_path(path)
+                if file_exists_on_modal_volume(modal_path, "mtsp_results"):
+                    get_file_from_modal_volume_and_cache_locally(
+                        modal_path, "./modal_volume_cache", "mtsp_results"
+                    )
+
+    def exists_on_modal(self, key):
+        path = self.get_path(key)
+        modal_path = self.get_modal_path_from_local_path(path)
+        exists_remotely = file_exists_on_modal_volume(modal_path, "mtsp_results")
+        return exists_remotely
 
     def exists(self, key):
         path = self.get_path(key)
 
-        if self.under_modal_volume and not self.on_modal:
-            modal_path = self.get_modal_path_from_local_path(path)
-            exists_remotely = file_exists_on_modal_volume(modal_path, "mtsp_results")
-            if not exists_remotely:
-                return False
+        if path.exists():
+            return True
 
-        self.pull_locally_if_modal_volume(key)
-        path = self.get_path(key)
-        return path.exists()
+        should_check_modal = self.under_modal_volume and not self.on_modal
+        return should_check_modal and self.exists_on_modal(key)
 
 
 # storer = Storer()
