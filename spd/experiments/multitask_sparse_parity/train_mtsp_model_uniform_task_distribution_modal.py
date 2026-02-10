@@ -47,7 +47,13 @@ class TrainConfig:
     code_version: str = "v1"
 
     def cache_key(self):
-        return hashlib.sha256(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:16]
+        return hashlib.sha256(
+            json.dumps(
+                asdict(self),
+                sort_keys=True,
+                default=int,  # https://stackoverflow.com/questions/50916422/python-typeerror-object-of-type-int64-is-not-json-serializable/66345356#comment133608565_72798532. default=int means if use np.int64 in config (e.g. from d_mlps = np.geomspace(32, 1024, 15).round().astype(int)) then hash is same as if use ints
+            ).encode()
+        ).hexdigest()[:16]
 
 
 # for d_mlp in [32, 64, 128, 256, 512]:
@@ -55,6 +61,7 @@ class TrainConfig:
 
 @app.function()
 def train_model(config):
+    print(config)
     storer = Storer("/modal_volume/mtsp_results/metrics/")
     storer.add_datestamp_prefix()
     storer.add_prefix(f"train_mtsp_model_uniform_task_distribution/v10/{config.cache_key()}")
@@ -91,7 +98,7 @@ def train_model(config):
 
             loss.backward()
             optimizer.step()
-            if step % 100 == 0 or step == config.steps - 1:
+            if step % 1000 == 0 or step == config.steps - 1:
                 print(f"{step=}", loss.item())
 
                 losses_by_task_for_step = []
@@ -195,7 +202,9 @@ def main():
     # config = TrainConfig(d_mlp=64)
     # train_model.remote(config)
 
-    d_mlps = [32, 64, 128, 256, 512]
+    # d_mlps = [32, 64, 128, 256, 512]
+    d_mlps = np.geomspace(32, 1024, 15).round().astype(int)
+    # d_mlps = [41]
     seeds = list(range(5))
 
     configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]

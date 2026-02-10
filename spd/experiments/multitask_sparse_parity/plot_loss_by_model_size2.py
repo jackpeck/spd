@@ -12,7 +12,8 @@ from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 rows = []
 
 for seed in range(5):
-    for d_mlp in [32, 64, 128]:
+    # for d_mlp in [32, 64, 128, 256, 512]:
+    for d_mlp in np.geomspace(32, 1024, 15).round().astype(int):
         # d_mlp = 64
         storer = Storer("/modal_volume/mtsp_results/metrics/")
         config = TrainConfig(d_mlp=d_mlp, seed=seed)
@@ -34,7 +35,10 @@ for seed in range(5):
         )
         storer.add_prefix(f"model/{config.steps}")
         key = "model"
-        assert storer.exists(key), (d_mlp, storer)
+        if not storer.exists(key):
+            print("key not found, skipping", (d_mlp, storer))
+            continue
+
         model.load_state_dict(storer.read(key))
         torch.manual_seed(0)
         task_ids, task_bits, parity = dataset.get_batch(batch_sz=1024)
@@ -51,9 +55,15 @@ for seed in range(5):
             loss = F.cross_entropy(logits, parity)
             losses_by_task.append(loss.item())
         losses_by_task = torch.tensor(losses_by_task)
-        print((losses_by_task < torch.log(torch.tensor(1.5))).float().mean())
+        task_learnt_proportion = (losses_by_task < torch.log(torch.tensor(1.5))).float().mean()
 
-        rows.append({**dataclasses.asdict(config), "val_loss": val_loss.item()})
+        row = {
+            **dataclasses.asdict(config),
+            "val_loss": val_loss.item(),
+            "task_learnt_proportion": task_learnt_proportion,
+        }
+
+        rows.append(row)
 
 df = pd.DataFrame(rows)
 # storer = Storer()
@@ -84,13 +94,13 @@ df = pd.DataFrame(rows)
 # # plt.show()
 
 
-grouped = df.groupby("d_mlp")["val_loss"]
+grouped = df.groupby("d_mlp")["task_learnt_proportion"]
 means = grouped.mean()
 stds = grouped.std()
 
 plt.errorbar(means.index, means.values, yerr=stds.values * 2, fmt="o-", capsize=4)
 plt.xlabel("d_mlp")
 plt.ylabel("val_loss")
-plt.yscale("log")
-plt.xscale("log")
+# plt.yscale("log")
+# plt.xscale("log")
 plt.show()
