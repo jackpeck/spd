@@ -76,7 +76,7 @@ for seed in range(5):
         rows.append(row)
 
 df = pd.DataFrame(rows)
-grouped = df.groupby("d_mlp")["task_learnt_proportion"]
+grouped = df.groupby("d_mlp")["val_loss"]
 means = grouped.mean()
 stds = grouped.std()
 counts = grouped.count()
@@ -87,5 +87,5 @@ plt.errorbar(
 plt.xlabel("d_mlp")
 plt.ylabel("proportion of tasks under 0.5 bits prediction error")
 # plt.xlim(0, 500)
-# plt.yscale("log")
+plt.yscale("log")
 plt.show()
