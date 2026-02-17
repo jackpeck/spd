@@ -19,10 +19,11 @@ import torch.nn.functional as F
 from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSparseParityModel
 from storer import Storer
 from torch.utils.data import DataLoader
+from transformers import get_cosine_schedule_with_warmup
 
 image = (
     modal.Image.debian_slim()
-    .pip_install("torch", "numpy", "coolname", "safetensors", "packaging")
+    .pip_install("torch", "numpy", "coolname", "safetensors", "packaging", "transformers")
     .add_local_python_source("multitask_sparse_parity")
     .add_local_python_source("storer")
     .add_local_python_source("modal_utils")
@@ -45,7 +46,7 @@ class TrainConfig:
     n_xored_bits: int = 4
     task_distribution_decay_rate: float = 0
     batch_sz: int = 1024
-    code_version: str = "v2"
+    code_version: str = "v3"
     eval_batch_sz: int = 4096
     model_src: str = inspect.getsource(MultitaskSparseParityModel)
 
@@ -88,6 +89,12 @@ def train_model(config):
     key = "model"
     if not storer.exists(key):
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer, T_max=config.steps, eta_min=1e-6
+        # )
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer, num_warmup_steps=int(config.steps * 0.01), num_training_steps=config.steps
+        )
 
         losses_by_step_and_task = []
 
@@ -101,6 +108,7 @@ def train_model(config):
 
             loss.backward()
             optimizer.step()
+            scheduler.step()
             if step % 1000 == 0 or step == config.steps - 1:
                 print(f"{step=}", loss.item())
 
@@ -199,6 +207,9 @@ def train_model(config):
 # train_model.local(config)
 
 
+# train_model.local(TrainConfig())
+
+
 @app.local_entrypoint()
 def main():
     # config = TrainConfig(d_mlp=64)
@@ -211,8 +222,7 @@ def main():
     seeds = list(range(5))
 
     configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
-    # print(configs)
-    # configs = [TrainConfig(d_mlp=d_mlp) for d_mlp in ]
+    print(configs)
     for result in train_model.map(configs):
         pass
 
