@@ -12,6 +12,7 @@ class MultitaskSparseParityDataset(IterableDataset):
         n_xored_bits,
         batch_sz,
         task_distribution_decay_rate,
+        device='cpu',
         seed=0,
         size=None,
     ):
@@ -24,7 +25,7 @@ class MultitaskSparseParityDataset(IterableDataset):
         self.n_xored_bits = n_xored_bits
 
         self.task_distribution_decay_rate = task_distribution_decay_rate
-
+        self.device = device
         rng = torch.Generator()
         rng.manual_seed(0)
         self.selected_bits_by_task = (
@@ -51,7 +52,7 @@ class MultitaskSparseParityDataset(IterableDataset):
         selected_bits_indexes = self.selected_bits_by_task[task_ids]
         selected_bits = task_bits.gather(1, selected_bits_indexes)
         parity = selected_bits.sum(-1) & 1
-        return task_ids, task_bits, parity
+        return task_ids.to(self.device), task_bits.to(self.device), parity.to(self.device)
 
     def __iter__(self):
         count = 0

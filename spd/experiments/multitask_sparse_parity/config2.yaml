@@ -1,7 +1,7 @@
 # copied from > run from Lucius with parameters that work well on TMS 40-10-id https://wandb.ai/goodfire/spd/runs/s-a62f1dc6
 #then further modified when talking to Lucius
 
-# wandb_project: spd
+wandb_project: spd
 wandb_run_name: null
 wandb_run_name_prefix: ''
 seed: 0
