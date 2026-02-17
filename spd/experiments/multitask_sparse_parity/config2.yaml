@@ -1,4 +1,5 @@
 # copied from > run from Lucius with parameters that work well on TMS 40-10-id https://wandb.ai/goodfire/spd/runs/s-a62f1dc6
+#then further modified when talking to Lucius
 
 # wandb_project: spd
 wandb_run_name: null
@@ -36,6 +37,7 @@ loss_metric_configs:
   mask_scope: shared_across_batch
   routing:
     type: uniform_k_subset
+  init: random
 - coeff: 1000.0 # not very senstive. increase by oom (up to 1m) if unmasked recon loss poor. could go down to 100
   classname: FaithfulnessLoss
 output_loss_type: kl

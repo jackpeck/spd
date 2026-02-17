@@ -61,7 +61,7 @@ class MultitaskSparseParityDataset(IterableDataset):
 
 
 class MultitaskSparseParityModel(nn.Module):
-    def __init__(self, n_control_bits, n_task_bits, d_mlp=200):
+    def __init__(self, n_control_bits, n_task_bits, d_mlp):
         self.n_control_bits = n_control_bits
         self.n_task_bits = n_task_bits
         super().__init__()

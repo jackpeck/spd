@@ -1,6 +1,12 @@
+import json
+import os
+import tempfile
+
 import torch
+import wandb
 from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSparseParityModel
 from torch.utils.data import DataLoader
+from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 from wandb_utils import load_wandb_model_artifact
 
 from spd.configs import Config
@@ -9,19 +15,49 @@ from spd.simple_trainer import optimize
 from spd.utils.general_utils import save_pre_run_info
 from spd.utils.run_utils import ExecutionStamp
 
-config = Config.from_file("config2.yaml")
+spd_config = Config.from_file("config2.yaml")
+target_model_wandb_run_path = "mutate/multitask-sparse-parity/5rvs7hyq"
+spd_batch_sz = 4096
 
-batch_sz = 64
+
+api = wandb.Api()
+run = api.run(target_model_wandb_run_path)
+
+with tempfile.TemporaryDirectory() as tmpdir:
+    config_file = run.file("train_config.json")
+    config_file.download(root=tmpdir, replace=True)
+    with open(os.path.join(tmpdir, "train_config.json")) as f:
+        target_config = TrainConfig(**json.load(f))
+
 train_loader = DataLoader(
-    MultitaskSparseParityDataset(batch_sz=batch_sz, size=100_000), batch_size=None
+    MultitaskSparseParityDataset(
+        n_control_bits=target_config.n_control_bits,
+        n_task_bits=target_config.n_task_bits,
+        n_xored_bits=target_config.n_xored_bits,
+        task_distribution_decay_rate=target_config.task_distribution_decay_rate,
+        batch_sz=spd_batch_sz,
+        size=100_000,
+    ),
+    batch_size=None,
 )
 eval_loader = DataLoader(
-    MultitaskSparseParityDataset(batch_sz=batch_sz, size=100_000), batch_size=None
+    MultitaskSparseParityDataset(
+        n_control_bits=target_config.n_control_bits,
+        n_task_bits=target_config.n_task_bits,
+        n_xored_bits=target_config.n_xored_bits,
+        task_distribution_decay_rate=target_config.task_distribution_decay_rate,
+        batch_sz=spd_batch_sz,
+        size=100_000,
+    ),
+    batch_size=None,
 )
 
-target_model_wandb_run_path = "mutate/multitask-sparse-parity/1rvgs5j9"
 artifact_path = load_wandb_model_artifact(target_model_wandb_run_path)
-target_model = MultitaskSparseParityModel()
+target_model = MultitaskSparseParityModel(
+    n_control_bits=target_config.n_control_bits,
+    n_task_bits=target_config.n_task_bits,
+    d_mlp=target_config.d_mlp,
+)
 target_model.load_state_dict(torch.load(artifact_path))
 
 
@@ -29,7 +65,7 @@ out_dir = ExecutionStamp.create(run_type="spd", create_snapshot=False).out_dir
 
 optimize(
     target_model=target_model,
-    config=config,
+    config=spd_config,
     device="cpu",
     train_loader=train_loader,
     eval_loader=eval_loader,
@@ -39,11 +75,11 @@ optimize(
 )
 
 save_pre_run_info(
-    save_to_wandb=config.wandb_project is not None,
+    save_to_wandb=spd_config.wandb_project is not None,
     out_dir=out_dir,
-    spd_config=config,
+    spd_config=spd_config,
     sweep_params=None,
     target_model=target_model,
     train_config=None,
-    task_name=config.task_config.task_name,
+    task_name=spd_config.task_config.task_name,
 )  # save final_config.yaml
