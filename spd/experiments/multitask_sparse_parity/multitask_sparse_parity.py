@@ -66,6 +66,7 @@ class MultitaskSparseParityModel(nn.Module):
         self.n_task_bits = n_task_bits
         super().__init__()
         self.l1 = nn.Linear(n_control_bits + n_task_bits, d_mlp)
+        # self.lb1 = nn.Linear(d_mlp, d_mlp)
         self.l2 = nn.Linear(d_mlp, 2)
         self.d_mlp = d_mlp
 
@@ -73,6 +74,8 @@ class MultitaskSparseParityModel(nn.Module):
         task_ids, task_bits, targets = batch
         x = torch.cat([F.one_hot(task_ids, self.n_control_bits), task_bits], dim=1).float()
         x = self.l1(x)
+        # x = F.relu(x)
+        # x = self.lb1(x)
         x = F.relu(x)
         x = self.l2(x)
         return x

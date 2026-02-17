@@ -7,37 +7,44 @@ seed: 0
 n_mask_samples: 1
 ci_fn_type: shared_mlp
 ci_fn_hidden_dims:
-- 100
+- 800
 sampling: continuous
 sigmoid_type: leaky_hard
 module_info:
   - module_pattern: "l*"
-    C: 300
+    C: 1000
 identity_module_info: null
 use_delta_component: true
 loss_metric_configs:
-- coeff: 0.0003
+- coeff: 0.0003 # need to tune
   classname: ImportanceMinimalityLoss
   pnorm: 2.0
   # pnorm_2: 1.0
-  beta: 0.0
-  p_anneal_start_frac: 1.0
-  p_anneal_final_p: null
+  beta: 0.0 # start with beta=0, might want to set to 0.1 later
+  p_anneal_start_frac: 0.0
+  p_anneal_final_p: 0.4
   p_anneal_end_frac: 1.0
   eps: 1.0e-12
-- coeff: 1.0
+- coeff: 0.5
   classname: StochasticReconSubsetLoss
   routing:
     type: uniform_k_subset
-- coeff: 1.0
+- coeff: 0.5
+  classname: PGDReconSubsetLoss
+  n_steps: 4
+  step_size: 0.5
+  mask_scope: shared_across_batch
+  routing:
+    type: uniform_k_subset
+- coeff: 1000.0 # not very senstive. increase by oom (up to 1m) if unmasked recon loss poor. could go down to 100
   classname: FaithfulnessLoss
-output_loss_type: mse
+output_loss_type: kl
 lr_schedule:
   start_val: 0.001
   warmup_pct: 0.0
-  final_val_frac: 0.0
+  final_val_frac: 0.1
   fn_type: cosine
-steps: 20000
+steps: 200000
 batch_size: 4096
 gradient_accumulation_steps: 1
 grad_clip_norm_components: null

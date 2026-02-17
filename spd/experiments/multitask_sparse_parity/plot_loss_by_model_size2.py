@@ -1,4 +1,6 @@
 import dataclasses
+import hashlib
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +14,7 @@ from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 rows = []
 
 
-d_mlps = np.geomspace(16, 512, 11).round().astype(int)
+d_mlps = list(np.geomspace(16, 512, 11).round().astype(int))
 for seed in range(5):
     # for d_mlp in [32, 64, 128, 256, 512]:
     # for d_mlp in np.geomspace(32, 1024, 15).round().astype(int):
@@ -76,16 +78,34 @@ for seed in range(5):
         rows.append(row)
 
 df = pd.DataFrame(rows)
-grouped = df.groupby("d_mlp")["val_loss"]
+grouped = df.groupby("d_mlp")["task_learnt_proportion"]
 means = grouped.mean()
 stds = grouped.std()
 counts = grouped.count()
 
+plt.figure(dpi=150)
 plt.errorbar(
     means.index, means.values, yerr=stds.values * 2 / np.sqrt(counts.values), fmt="o-", capsize=4
 )
 plt.xlabel("d_mlp")
 plt.ylabel("proportion of tasks under 0.5 bits prediction error")
-# plt.xlim(0, 500)
-plt.yscale("log")
+# plt.xlim(0, 250)
+# plt.yscale("log")
+default_config = TrainConfig()
+plt.title(
+    f"n_control_bits={default_config.n_control_bits}, n_task_bits={default_config.n_task_bits}"
+)
+
+
+hash = hashlib.sha256(
+    json.dumps(
+        {
+            "default_config_hash": TrainConfig().cache_key(),
+            "seeds": 5,
+            "d_mlps": d_mlps,
+        },
+        default=int,
+    ).encode()
+).hexdigest()[:8]
+plt.savefig(f"plots/{hash}-proportion of tasks under 0.5 bits prediction error.png")
 plt.show()

@@ -3,6 +3,7 @@
 # n_xored_bits = 4
 # batch_sz = 64
 import hashlib
+import inspect
 import json
 from dataclasses import asdict, dataclass
 
@@ -37,15 +38,16 @@ app = modal.App(
 class TrainConfig:
     d_mlp: int = 256
     seed: int = 0
-    steps: int = 50_000
+    steps: int = 100_000
     lr: float = 1e-3
     n_control_bits: int = 10
     n_task_bits: int = 30
     n_xored_bits: int = 4
     task_distribution_decay_rate: float = 0
-    batch_sz: int = 64
-    code_version: str = "v1"
-    eval_batch_sz: int = 1024
+    batch_sz: int = 1024
+    code_version: str = "v2"
+    eval_batch_sz: int = 4096
+    model_src: str = inspect.getsource(MultitaskSparseParityModel)
 
     def cache_key(self):
         return hashlib.sha256(
@@ -60,7 +62,7 @@ class TrainConfig:
 # for d_mlp in [32, 64, 128, 256, 512]:
 
 
-@app.function(timeout=360)
+@app.function(timeout=700)
 def train_model(config):
     print(config)
     storer = Storer("/modal_volume/mtsp_results/metrics/")
@@ -205,6 +207,7 @@ def main():
     # d_mlps = [32, 64, 128, 256, 512]
     # d_mlps = np.geomspace(32, 2756, 19).round().astype(int)
     d_mlps = np.geomspace(16, 512, 11).round().astype(int)
+    # d_mlps = [8, 12]
     seeds = list(range(5))
 
     configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
