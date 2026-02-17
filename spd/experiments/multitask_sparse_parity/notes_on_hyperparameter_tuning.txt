@@ -1,0 +1,22 @@
+
+first to tune
+importance minimality coefficient
+and lr
+
+lr_schedule.start_val
+
+coeff: 0.0003 # need to tune
+  classname: ImportanceMinimalityLoss
+tune ImportanceMinimalityLoss before lr
+
+
+probably don't need to tune PGDReconSubsetLoss.n_steps for a model this small
+don't look at L0 - will massively change as p is annealed
+
+look at importance minimality instead
+if importance minimality is ~25, then at end L0 will typically be in this range (maybe ~30)
+
+
+for d_mlp=2048 model. lucius said he'd expect L0 on a given datapoint to be maybe ~10.
+this is a rough educated guess on how many components a model would need to do the task
+
