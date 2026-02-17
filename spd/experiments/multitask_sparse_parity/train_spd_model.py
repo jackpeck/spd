@@ -8,19 +8,18 @@ from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSpars
 from torch.utils.data import DataLoader
 from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 from wandb_utils import load_wandb_model_artifact
-from spd.log import logger
+
 from spd.configs import Config
+from spd.log import logger
 from spd.models.batch_and_loss_fns import recon_loss_kl
 from spd.simple_trainer import optimize
 from spd.utils.general_utils import save_pre_run_info
 from spd.utils.run_utils import ExecutionStamp
 from spd.utils.wandb_utils import init_wandb
 
-
 spd_config = Config.from_file("config2.yaml")
 target_model_wandb_run_path = "mutate/multitask-sparse-parity/5rvs7hyq"
 spd_batch_sz = 64
-
 
 api = wandb.Api()
 run = api.run(target_model_wandb_run_path)
@@ -31,7 +30,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(os.path.join(tmpdir, "train_config.json")) as f:
         target_config = TrainConfig(**json.load(f))
 
-device = torch.device('cuda')
+device = torch.device("cuda")
 
 train_loader = DataLoader(
     MultitaskSparseParityDataset(
