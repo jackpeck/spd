@@ -8,7 +8,7 @@ from storer import Storer
 from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 
 # np.geomspace(16, 512, 11).round().astype(int) array([ 16,  23,  32,  45,  64,  91, 128, 181, 256, 362, 512])
-d_mlp = 32
+d_mlp = 256
 storer = Storer("/modal_volume/mtsp_results/metrics/")
 config = TrainConfig(d_mlp=d_mlp, seed=0)
 

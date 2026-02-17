@@ -18,7 +18,7 @@ seeds = list(range(5))
 
 configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
 
-config = configs[0]
+config = TrainConfig(d_mlp=256, seed=0)
 
 storer = Storer("/modal_volume/mtsp_results/metrics/")
 storer.add_datestamp_prefix()
@@ -48,6 +48,11 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(train_config_path, "w") as f:
         json.dump(dataclasses.asdict(config), f, indent=4, default=int)
     wandb.save(train_config_path, base_path=tmpdir)
+
+    storer_path = os.path.join(tmpdir, "storer_path.txt")
+    with open(storer_path, "w") as f:
+        f.write(str(storer))
+    wandb.save(storer_path, base_path=tmpdir)
 
     for step_idx, step in enumerate(range(0, config.steps, 1000)):
         log_dict = {"step": step, "loss/overall": losses_by_step_and_task[step_idx, 0]}
