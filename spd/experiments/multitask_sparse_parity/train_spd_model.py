@@ -35,6 +35,7 @@ from spd.simple_trainer import optimize
 from spd.utils.general_utils import save_pre_run_info
 from spd.utils.run_utils import ExecutionStamp
 from spd.utils.wandb_utils import init_wandb
+from generate_descriptive_run_name import generate_run_name
 
 spd_config = Config.from_file("config2.yaml")
 target_model_wandb_run_path = "mutate/multitask-sparse-parity/5rvs7hyq"
@@ -90,11 +91,12 @@ logger.info(f"Run ID: {execution_stamp.run_id}")
 logger.info(f"Output directory: {out_dir}")
 
 if spd_config.wandb_project:
+    run_name = spd_config.wandb_run_name or generate_run_name()
     init_wandb(
         config=spd_config,
         project=spd_config.wandb_project,
         run_id=execution_stamp.run_id,
-        name=spd_config.wandb_run_name,
+        name=run_name,
         tags=[],
     )
 
