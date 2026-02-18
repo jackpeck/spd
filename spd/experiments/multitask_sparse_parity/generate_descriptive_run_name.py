@@ -138,10 +138,12 @@ Git diffs from last 3 runs (compare against current diff to see what changed):
 
 The project does SPD (stochastic parameter decomposition) on multitask sparse parity models. The title should describe what experiment configuration is being run, focusing on parameter values and setup choices. Think: what would the researcher search for to find this run?
 
-Good examples: "C=1000 pnorm=2 l* decomp", "d_mlp=256 10 tasks", "faithfulness coeff=1000", "decompose l2 only, C=500"
+Good examples: "C=1000 pnorm=2 l* decomp", "d_mlp=256 10 tasks", "faithfulness 1000", "decompose l2 only, C=500", "imp min 0.02", "l1 only, stoch recon 0.5"
+Bad examples: "coeff=0.02" (which coeff?? always say which loss/config it belongs to, e.g. "imp min 0.02")
 
 Rules:
-- Include specific parameter values from configs/code (d_mlp, C, n_control_bits, coefficients, module patterns, etc).
+- Include specific parameter values from configs/code (d_mlp, C, n_control_bits, loss coefficients, module patterns, etc).
+- When mentioning a coefficient or parameter, always say WHICH loss or config it belongs to. Use short names: "imp min" for ImportanceMinimalityLoss, "stoch recon" for StochasticReconSubsetLoss, "faithfulness" for FaithfulnessLoss, "PGD recon" for PGDReconSubsetLoss.
 - Focus on what CHANGED vs previous runs. Don't repeat info that's constant across recent runs.
 - If this is the first run or many things changed, include more context.
 - If the diff is only tooling/scripts/plotting with no experiment parameter changes, title it based on whatever experiment config is visible in the code (e.g. from config files or training scripts in the patches). If you truly can't see any config, say "no config changes visible".
