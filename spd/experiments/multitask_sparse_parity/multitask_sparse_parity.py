@@ -32,27 +32,27 @@ class MultitaskSparseParityDataset(IterableDataset):
             torch.randn((self.n_control_bits, self.n_task_bits), generator=rng)
             .sort()
             .indices[:, : self.n_xored_bits]
-        )
+        ).to(device)
 
-    def get_batch(self, batch_sz):
-        probs = F.normalize(
+        self.probs = F.normalize(
             (torch.arange(self.n_control_bits, dtype=torch.float) + 1)
             ** -(self.task_distribution_decay_rate),
             p=1,
             dim=0,
-        )
-        task_ids = torch.multinomial(probs, batch_sz, replacement=True)
+        ).to(device)
 
+    def get_batch(self, batch_sz):
+        task_ids = torch.multinomial(self.probs, batch_sz, replacement=True)
         return self.get_batch_for_task_ids(batch_sz, task_ids)
 
     def get_batch_for_task_ids(self, batch_sz, task_ids):
         if len(task_ids.shape) == 0:
             task_ids = task_ids.repeat(batch_sz)
-        task_bits = torch.randint(2, (batch_sz, self.n_task_bits))
+        task_bits = torch.randint(2, (batch_sz, self.n_task_bits), device=self.device)
         selected_bits_indexes = self.selected_bits_by_task[task_ids]
         selected_bits = task_bits.gather(1, selected_bits_indexes)
         parity = selected_bits.sum(-1) & 1
-        return task_ids.to(self.device), task_bits.to(self.device), parity.to(self.device)
+        return task_ids, task_bits, parity
 
     def __iter__(self):
         count = 0
