@@ -37,7 +37,7 @@ app = modal.App(
 
 @dataclass(frozen=True)
 class TrainConfig:
-    d_mlp: int = 256
+    d_mlp: int = 512
     seed: int = 0
     steps: int = 100_000
     lr: float = 1e-3
@@ -215,13 +215,20 @@ def main():
     # config = TrainConfig(d_mlp=64)
     # train_model.remote(config)
 
-    # d_mlps = [32, 64, 128, 256, 512]
-    # d_mlps = np.geomspace(32, 2756, 19).round().astype(int)
-    d_mlps = np.geomspace(16, 512, 11).round().astype(int)
-    # d_mlps = [8, 12]
     seeds = list(range(5))
 
-    configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
+    # d_mlps = [32, 64, 128, 256, 512]
+    # d_mlps = np.geomspace(32, 2756, 19).round().astype(int)
+    # d_mlps = np.geomspace(16, 512, 11).round().astype(int)
+    # configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
+
+    # d_mlps = np.geomspace(16, 512, 11).round().astype(int)
+    n_control_bits_sweep = [2, 4, 6, 8, 10, 12, 14]
+    configs = [
+        TrainConfig(d_mlp=512, seed=seed, n_control_bits=n_control_bits)
+        for n_control_bits in n_control_bits_sweep
+        for seed in seeds
+    ]
     print(configs)
     for result in train_model.map(configs):
         pass

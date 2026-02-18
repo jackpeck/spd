@@ -13,13 +13,16 @@ from multitask_sparse_parity import MultitaskSparseParityDataset, MultitaskSpars
 from storer import Storer
 from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 
-d_mlps = np.geomspace(16, 512, 11).round().astype(int)
-seeds = list(range(5))
+# d_mlps = np.geomspace(16, 512, 11).round().astype(int)
+# seeds = list(range(5))
 
-configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
+# configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
 
-config = TrainConfig(d_mlp=256, seed=0)
+# n_control_bits_sweep = [2, 4, 6, 8, 10, 12, 14]
+# np.geomspace(16, 512, 11).round().astype(int) array([ 16,  23,  32,  45,  64,  91, 128, 181, 256, 362, 512])
 
+config = TrainConfig(d_mlp=512, seed=0, n_control_bits=10)
+print(config)
 storer = Storer("/modal_volume/mtsp_results/metrics/")
 storer.add_datestamp_prefix()
 storer.add_prefix(f"train_mtsp_model_uniform_task_distribution/v10/{config.cache_key()}")
