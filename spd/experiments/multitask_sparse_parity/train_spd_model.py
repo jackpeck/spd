@@ -38,6 +38,9 @@ from spd.utils.wandb_utils import init_wandb
 from generate_descriptive_run_name import generate_run_name
 
 spd_config = Config.from_file("config2.yaml")
+run_name = spd_config.wandb_run_name or generate_run_name()
+print(f'{run_name=}')
+
 target_model_wandb_run_path = "mutate/multitask-sparse-parity/5rvs7hyq"
 
 api = wandb.Api()
@@ -91,7 +94,6 @@ logger.info(f"Run ID: {execution_stamp.run_id}")
 logger.info(f"Output directory: {out_dir}")
 
 if spd_config.wandb_project:
-    run_name = spd_config.wandb_run_name or generate_run_name()
     init_wandb(
         config=spd_config,
         project=spd_config.wandb_project,
