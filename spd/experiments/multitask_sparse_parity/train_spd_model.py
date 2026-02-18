@@ -18,7 +18,7 @@ def get_least_loaded_gpu() -> int:
 
 
 least_loaded_gpu = get_least_loaded_gpu()
-print(f"Selected GPU {least_loaded_gpu} (least loaded)")
+print(f"Selected GPU {least_loaded_gpu} (least loaded by memory)")
 os.environ["CUDA_VISIBLE_DEVICES"] = str(least_loaded_gpu)
 
 import torch
