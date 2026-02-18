@@ -178,3 +178,4 @@ cython_debug/
 metrics/
 plots/
 venv-cmd
+.run_name_history.jsonl
