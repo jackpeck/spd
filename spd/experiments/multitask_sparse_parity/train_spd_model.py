@@ -1,6 +1,25 @@
 import json
 import os
+import subprocess
 import tempfile
+
+
+def get_least_loaded_gpu() -> int:
+    result = subprocess.run(
+        ["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
+        capture_output=True,
+        text=True,
+    )
+    gpus = []
+    for line in result.stdout.strip().split("\n"):
+        idx, mem = line.split(", ")
+        gpus.append((int(idx), int(mem)))
+    return min(gpus, key=lambda x: x[1])[0]
+
+
+least_loaded_gpu = get_least_loaded_gpu()
+print(f"Selected GPU {least_loaded_gpu} (least loaded)")
+os.environ["CUDA_VISIBLE_DEVICES"] = str(least_loaded_gpu)
 
 import torch
 import wandb
@@ -19,7 +38,6 @@ from spd.utils.wandb_utils import init_wandb
 
 spd_config = Config.from_file("config2.yaml")
 target_model_wandb_run_path = "mutate/multitask-sparse-parity/5rvs7hyq"
-spd_batch_sz = 64
 
 api = wandb.Api()
 run = api.run(target_model_wandb_run_path)
@@ -38,7 +56,7 @@ train_loader = DataLoader(
         n_task_bits=target_config.n_task_bits,
         n_xored_bits=target_config.n_xored_bits,
         task_distribution_decay_rate=target_config.task_distribution_decay_rate,
-        batch_sz=spd_batch_sz,
+        batch_sz=spd_config.batch_size,
         size=None,
         device=device,
     ),
@@ -50,7 +68,7 @@ eval_loader = DataLoader(
         n_task_bits=target_config.n_task_bits,
         n_xored_bits=target_config.n_xored_bits,
         task_distribution_decay_rate=target_config.task_distribution_decay_rate,
-        batch_sz=spd_batch_sz,
+        batch_sz=spd_config.eval_batch_size,
         size=None,
         device=device,
     ),
