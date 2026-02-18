@@ -17,7 +17,7 @@ module_info:
 identity_module_info: null
 use_delta_component: true
 loss_metric_configs:
-- coeff: 0.0003 # need to tune
+- coeff: 0.01 # need to tune
   classname: ImportanceMinimalityLoss
   pnorm: 2.0
   # pnorm_2: 1.0
@@ -38,7 +38,7 @@ loss_metric_configs:
   routing:
     type: uniform_k_subset
   init: random
-- coeff: 1000.0 # not very senstive. increase by oom (up to 1m) if unmasked recon loss poor. could go down to 100
+- coeff: 100.0 # not very senstive. increase by oom (up to 1m) if unmasked recon loss poor. could go down to 100
   classname: FaithfulnessLoss
 output_loss_type: kl
 lr_schedule:
@@ -47,7 +47,7 @@ lr_schedule:
   final_val_frac: 0.1
   fn_type: cosine
 steps: 200000
-batch_size: 4096
+batch_size: 64
 gradient_accumulation_steps: 1
 grad_clip_norm_components: null
 grad_clip_norm_ci_fns: null
@@ -55,7 +55,7 @@ faithfulness_warmup_steps: 200
 faithfulness_warmup_lr: 0.01
 faithfulness_warmup_weight_decay: 0.1
 train_log_freq: 100
-eval_freq: 1000
+eval_freq: 5000
 eval_batch_size: 4096
 slow_eval_freq: 5000
 n_eval_steps: 100
