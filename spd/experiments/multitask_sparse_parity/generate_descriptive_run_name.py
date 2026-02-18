@@ -46,9 +46,9 @@ def _truncate(s: str, limit: int) -> str:
 
 
 def _current_diff() -> str:
-    diff = _git(["diff", "--cached", "-U3"])
+    diff = _git(["diff", "--cached", "-U10"])
     if not diff:
-        diff = _git(["diff", "-U3"])
+        diff = _git(["diff", "-U10"])
     return _truncate(diff, MAX_DIFF_CHARS)
 
 
