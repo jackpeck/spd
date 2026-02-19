@@ -13,7 +13,7 @@ Usage:
 import json
 import os
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 import anthropic
@@ -24,7 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 load_dotenv(REPO_ROOT / ".env", override=True)
 
-MAX_DIFF_CHARS = 4000
+MAX_DIFF_CHARS = 10000
 N_COMMITS = 5
 HEAD_LINES_PER_FILE = 80
 
@@ -46,8 +46,22 @@ def _truncate(s: str, limit: int) -> str:
 
 
 def _current_diff() -> str:
-    diff = _git(["diff", "HEAD", "-U10"])
-    return _truncate(diff, MAX_DIFF_CHARS)
+    """Show the first `HEAD_LINES_PER_FILE` lines of each file with uncommitted changes."""
+    changed_files = _git(["diff", "HEAD", "--name-only"]).splitlines()
+    if not changed_files:
+        return ""
+    file_parts = []
+    for filepath in changed_files:
+        full_path = REPO_ROOT / filepath
+        if not full_path.exists():
+            file_parts.append(f"  {filepath}: (deleted)")
+            continue
+        lines = full_path.read_text().splitlines()
+        head = "\n".join(lines[:HEAD_LINES_PER_FILE])
+        if len(lines) > HEAD_LINES_PER_FILE:
+            head += f"\n... ({len(lines) - HEAD_LINES_PER_FILE} more lines)"
+        file_parts.append(f"  {filepath}:\n{head}")
+    return _truncate("\n".join(file_parts), MAX_DIFF_CHARS)
 
 
 def _commit_file_heads(n_commits: int, head_lines: int) -> str:
@@ -56,7 +70,9 @@ def _commit_file_heads(n_commits: int, head_lines: int) -> str:
     parts = []
     for commit_hash in hashes:
         subject = _git(["log", "--format=%s", "-1", commit_hash])
-        changed_files = _git(["diff-tree", "--no-commit-id", "--name-only", "-r", commit_hash]).splitlines()
+        changed_files = _git(
+            ["diff-tree", "--no-commit-id", "--name-only", "-r", commit_hash]
+        ).splitlines()
         file_parts = []
         for filepath in changed_files:
             content = _git(["show", f"{commit_hash}:{filepath}"])
@@ -75,12 +91,12 @@ def _git_context() -> str:
     diff = _current_diff()
 
     parts = [f"Branch: {branch}"]
-    parts.append(f"Recent commits (first {HEAD_LINES_PER_FILE} lines of each changed file):\n{commit_heads}")
+    parts.append(
+        f"Recent commits (first {HEAD_LINES_PER_FILE} lines of each changed file):\n{commit_heads}"
+    )
     if diff:
         parts.append(f"Uncommitted changes:\n{diff}")
     return "\n\n".join(parts)
-
-
 
 
 def _load_history() -> list[dict]:
@@ -127,7 +143,7 @@ Git diffs from last 3 runs (compare against current diff to see what changed):
 """
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-opus-4-6",
         max_tokens=200,
         messages=[
             {
@@ -136,7 +152,7 @@ Git diffs from last 3 runs (compare against current diff to see what changed):
 
 The project does SPD (stochastic parameter decomposition) on multitask sparse parity models. The title should describe what experiment configuration is being run, focusing on parameter values and setup choices. Think: what would the researcher search for to find this run?
 
-Good examples: "C=1000 pnorm=2 l* decomp", "d_mlp=256 10 tasks", "faithfulness 1000", "decompose l2 only, C=500", "imp min 0.02", "l1 only, stoch recon 0.5"
+Good examples: "C=1000 pnorm=2 l* decomp", "d_mlp=100 10 tasks", "faithfulness 1000", "decompose l2 only, C=500", "imp min 0.02", "l1 only, stoch recon 0.5"
 Bad examples: "coeff=0.02" (which coeff?? always say which loss/config it belongs to, e.g. "imp min 0.02")
 
 Rules:
@@ -146,6 +162,15 @@ Rules:
 - If this is the first run or many things changed, include more context.
 - If the diff is only tooling/scripts/plotting with no experiment parameter changes, title it based on whatever experiment config is visible in the code (e.g. from config files or training scripts in the patches). If you truly can't see any config, say "no config changes visible".
 
+ENSURE YOU USE THE CORRECT d_mlp.
+
+BE CAREFUL about code changes which may not obviously change a run parameter, but do. E.g.
+```
+-idx = 8
++idx = 6
+```
+where idx is used as an index into a list of models to train an spd run on - ENSURE YOU REFER TO THE CORRECT RUN
+
 Past run titles and summaries (most recent last):
 {past_titles}
 {past_diffs_section}
@@ -154,7 +179,8 @@ Current git context:
 
 Respond in exactly this format:
 TITLE: <title>
-SUMMARY: <one sentence on what this run's config/setup is>""",
+SUMMARY: <one sentence on what this run's config/setup is>
+""",
             }
         ],
     )
@@ -172,7 +198,7 @@ SUMMARY: <one sentence on what this run's config/setup is>""",
 
 
 def _append_history(title: str, summary: str, diff: str) -> None:
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     entry = {
         "timestamp": timestamp,
         "title": title,
