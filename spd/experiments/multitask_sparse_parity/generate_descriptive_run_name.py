@@ -143,7 +143,7 @@ Git diffs from last 3 runs (compare against current diff to see what changed):
 """
 
     response = client.messages.create(
-        model="claude-opus-4-6",
+        model="claude-sonnet-4-6",
         max_tokens=200,
         messages=[
             {
