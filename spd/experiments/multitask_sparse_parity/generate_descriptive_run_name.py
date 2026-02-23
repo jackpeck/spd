@@ -52,7 +52,7 @@ def _current_diff() -> str:
         return ""
     file_parts = []
     for filepath in changed_files:
-        diff = _git(["diff", "HEAD", "--", filepath])
+        diff = _git(["diff", "-U10", "HEAD", "--", filepath])
         lines = diff.splitlines()
         head = "\n".join(lines[:MAX_DIFF_LINES_PER_FILE])
         if len(lines) > MAX_DIFF_LINES_PER_FILE:
@@ -72,7 +72,7 @@ def _commit_file_diffs(n_commits: int, max_lines: int) -> str:
         ).splitlines()
         file_parts = []
         for filepath in changed_files:
-            diff = _git(["diff", f"{commit_hash}~1", commit_hash, "--", filepath])
+            diff = _git(["diff", "-U10", f"{commit_hash}~1", commit_hash, "--", filepath])
             lines = diff.splitlines()
             head = "\n".join(lines[:head_lines])
             if len(lines) > head_lines:
