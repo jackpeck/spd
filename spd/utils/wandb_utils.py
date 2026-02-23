@@ -58,6 +58,7 @@ METRIC_CONFIG_SHORT_NAMES: dict[str, str] = {
     "CEandKLLosses": "CEandKL",
     "CIHistograms": "CIHist",
     "CI_L0": "CI_L0",
+    "CIDensitiesPerTask": "CIDensitiesPerTask",
     "CIMeanPerComponent": "CIMeanPerComp",
     "ComponentActivationDensity": "CompActDens",
     "IdentityCIError": "IdCIErr",

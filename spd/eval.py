@@ -11,6 +11,7 @@ from wandb.plot.custom_chart import CustomChart
 from spd.configs import (
     CEandKLLossesConfig,
     CI_L0Config,
+    CIDensitiesPerTaskConfig,
     CIHistogramsConfig,
     CIMaskedReconLayerwiseLossConfig,
     CIMaskedReconLossConfig,
@@ -38,6 +39,7 @@ from spd.configs import (
 )
 from spd.metrics import UnmaskedReconLoss
 from spd.metrics.base import Metric
+from spd.metrics.ci_densities_per_task import CIDensitiesPerTask
 from spd.metrics.ci_histograms import CIHistograms
 from spd.metrics.ci_l0 import CI_L0
 from spd.metrics.ci_masked_recon_layerwise_loss import CIMaskedReconLayerwiseLoss
@@ -147,6 +149,12 @@ def init_metric[BatchT, OutputT](
             # )
         case CIHistogramsConfig():
             metric = CIHistograms(model=model, n_batches_accum=cfg.n_batches_accum)
+        case CIDensitiesPerTaskConfig():
+            metric = CIDensitiesPerTask(
+                model=model,
+                n_bins=cfg.n_bins,
+                device=device,
+            )
         case CI_L0Config():
             metric = CI_L0(
                 model=model,

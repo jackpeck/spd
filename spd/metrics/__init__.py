@@ -1,5 +1,6 @@
 # Note that "... as ..." allows for these to be imported elsewhere (See PEP 484 on re-exporting)
 from .ce_and_kl_losses import CEandKLLosses as CEandKLLosses
+from .ci_densities_per_task import CIDensitiesPerTask as CIDensitiesPerTask
 from .ci_histograms import CIHistograms as CIHistograms
 from .ci_l0 import CI_L0 as CI_L0
 from .ci_masked_recon_layerwise_loss import CIMaskedReconLayerwiseLoss as CIMaskedReconLayerwiseLoss

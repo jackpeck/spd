@@ -419,6 +419,83 @@ def plot_component_activation_density(
     return fig_img
 
 
+def plot_ci_densities_per_task(
+    counts_by_module: dict[str, Tensor],
+) -> dict[str, Image.Image]:
+    """Plot CI density heatmaps broken down by task for each module.
+
+    For each module, produces a row of heatmaps: "All Tasks" + one per task.
+    Rows = components, columns = CI value bins. Color = frequency (log scale).
+
+    Args:
+        counts_by_module: Dict mapping module name to integer count tensor of shape
+            (n_tasks, n_components, n_bins).
+
+    Returns:
+        Dict mapping figure names to PIL images.
+    """
+    import matplotlib.colors as mcolors
+
+    def counts_to_freqs(counts: np.ndarray) -> np.ndarray:
+        """(n_components, n_bins) counts -> (n_components, n_bins) frequencies."""
+        totals = counts.sum(axis=1, keepdims=True)
+        return np.where(totals > 0, counts / totals, 0.0)
+
+    figures: dict[str, Image.Image] = {}
+
+    for module_name, counts_tensor in counts_by_module.items():
+        counts_np = counts_tensor.cpu().numpy()  # (n_tasks, n_components, n_bins)
+        n_tasks, n_components, _ = counts_np.shape
+
+        all_counts = counts_np.sum(axis=0)  # (n_components, n_bins)
+        all_freqs = counts_to_freqs(all_counts)
+        task_freqs = [counts_to_freqs(counts_np[t]) for t in range(n_tasks)]
+
+        all_freqs_list = [all_freqs] + task_freqs
+        global_vmax = max(f.max() for f in all_freqs_list)
+        norm = mcolors.LogNorm(vmin=1e-4, vmax=global_vmax)
+
+        titles = ["All Tasks"] + [f"Task {t}" for t in range(n_tasks)]
+
+        n_panels = n_tasks + 1
+        fig = plt.figure(figsize=(2 * n_panels + 2, 6))
+        gs = fig.add_gridspec(1, n_panels + 1, width_ratios=[1] * n_panels + [0.05])
+
+        axes = [fig.add_subplot(gs[0, 0])]
+        for i in range(1, n_panels):
+            axes.append(fig.add_subplot(gs[0, i], sharey=axes[0]))
+        cax = fig.add_subplot(gs[0, -1])
+
+        im = None
+        for ax, freqs, title in zip(axes, all_freqs_list, titles):
+            im = ax.imshow(
+                freqs,
+                aspect="auto",
+                cmap="viridis",
+                norm=norm,
+                extent=(0, 1, n_components, 0),
+            )
+            ax.set_xlabel("CI Value")
+            ax.set_title(title)
+
+        for ax in axes[1:]:
+            ax.tick_params(labelleft=False)
+
+        for ax in axes:
+            ax.set_xticks([0, 0.5, 1])
+
+        assert im is not None
+        axes[0].set_ylabel("Component")
+        fig.colorbar(im, cax=cax, label="Frequency (log scale)")
+        fig.suptitle(module_name, fontsize=12)
+        plt.tight_layout()
+
+        figures[f"ci_densities_per_task/{module_name}"] = _render_figure(fig)
+        plt.close(fig)
+
+    return figures
+
+
 def plot_ci_values_histograms(
     causal_importances: dict[str, Float[Tensor, "... C"]],
     bins: int = 100,

@@ -175,7 +175,7 @@ cython_debug/
 **/*.db*
 
 *.claude*
-metrics/
+modal_volume_cache/
 plots/
 venv-cmd
 .run_name_history.jsonl

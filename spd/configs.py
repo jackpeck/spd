@@ -341,6 +341,11 @@ class StochasticReconSubsetCEAndKLConfig(BaseConfig):
     exclude_patterns: dict[str, list[str]] | None
 
 
+class CIDensitiesPerTaskConfig(BaseConfig):
+    classname: Literal["CIDensitiesPerTask"] = "CIDensitiesPerTask"
+    n_bins: PositiveInt = 100
+
+
 class UVPlotsConfig(BaseConfig):
     classname: Literal["UVPlots"] = "UVPlots"
     identity_patterns: list[str] | None
@@ -365,6 +370,7 @@ LossMetricConfigType = FaithfulnessLossConfig | ImportanceMinimalityLossConfig |
 
 EvalOnlyMetricConfigType = (
     CEandKLLossesConfig
+    | CIDensitiesPerTaskConfig
     | CIHistogramsConfig
     | CI_L0Config
     | CIMeanPerComponentConfig
