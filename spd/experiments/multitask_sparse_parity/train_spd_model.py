@@ -3,24 +3,6 @@ import os
 import subprocess
 import tempfile
 
-
-def get_least_loaded_gpu() -> int:
-    result = subprocess.run(
-        ["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
-        capture_output=True,
-        text=True,
-    )
-    gpus = []
-    for line in result.stdout.strip().split("\n"):
-        idx, mem = line.split(", ")
-        gpus.append((int(idx), int(mem)))
-    return min(gpus, key=lambda x: x[1])[0]
-
-
-least_loaded_gpu = get_least_loaded_gpu()
-print(f"Selected GPU {least_loaded_gpu} (least loaded by memory)")
-os.environ["CUDA_VISIBLE_DEVICES"] = str(least_loaded_gpu)
-
 import torch
 import wandb
 from generate_descriptive_run_name import generate_run_name
@@ -36,6 +18,28 @@ from spd.simple_trainer import optimize
 from spd.utils.general_utils import save_pre_run_info
 from spd.utils.run_utils import ExecutionStamp
 from spd.utils.wandb_utils import init_wandb
+
+
+def get_least_loaded_gpu() -> int:
+    result = subprocess.run(
+        ["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
+        capture_output=True,
+        text=True,
+    )
+    gpus = []
+    for line in result.stdout.strip().split("\n"):
+        idx, mem = line.split(", ")
+        gpus.append((int(idx), int(mem)))
+    return min(gpus, key=lambda x: x[1])[0]
+
+
+if torch.cuda.is_available():
+    least_loaded_gpu = get_least_loaded_gpu()
+    print(f"Selected GPU {least_loaded_gpu} (least loaded by memory)")
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(least_loaded_gpu)
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
 
 spd_config = Config.from_file("config2.yaml")
 run_name = spd_config.wandb_run_name or generate_run_name()
@@ -88,7 +92,6 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(os.path.join(tmpdir, "train_config.json")) as f:
         target_config = TrainConfig(**json.load(f))
 
-device = torch.device("cuda")
 
 train_loader = DataLoader(
     MultitaskSparseParityDataset(
