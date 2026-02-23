@@ -26,7 +26,7 @@ load_dotenv(REPO_ROOT / ".env", override=True)
 
 MAX_DIFF_CHARS = 10000
 N_COMMITS = 5
-HEAD_LINES_PER_FILE = 80
+MAX_DIFF_LINES_PER_FILE = 80
 
 
 def _git(args: list[str]) -> str:
@@ -46,26 +46,23 @@ def _truncate(s: str, limit: int) -> str:
 
 
 def _current_diff() -> str:
-    """Show the first `HEAD_LINES_PER_FILE` lines of each file with uncommitted changes."""
+    """Show the git diff for each file with uncommitted changes, limited to MAX_DIFF_LINES_PER_FILE lines per file."""
     changed_files = _git(["diff", "HEAD", "--name-only"]).splitlines()
     if not changed_files:
         return ""
     file_parts = []
     for filepath in changed_files:
-        full_path = REPO_ROOT / filepath
-        if not full_path.exists():
-            file_parts.append(f"  {filepath}: (deleted)")
-            continue
-        lines = full_path.read_text().splitlines()
-        head = "\n".join(lines[:HEAD_LINES_PER_FILE])
-        if len(lines) > HEAD_LINES_PER_FILE:
-            head += f"\n... ({len(lines) - HEAD_LINES_PER_FILE} more lines)"
+        diff = _git(["diff", "HEAD", "--", filepath])
+        lines = diff.splitlines()
+        head = "\n".join(lines[:MAX_DIFF_LINES_PER_FILE])
+        if len(lines) > MAX_DIFF_LINES_PER_FILE:
+            head += f"\n... ({len(lines) - MAX_DIFF_LINES_PER_FILE} more lines)"
         file_parts.append(f"  {filepath}:\n{head}")
     return _truncate("\n".join(file_parts), MAX_DIFF_CHARS)
 
 
-def _commit_file_heads(n_commits: int, head_lines: int) -> str:
-    """For each of the last n commits, show the first `head_lines` of each changed file."""
+def _commit_file_diffs(n_commits: int, max_lines: int) -> str:
+    """For each of the last n commits, show the diff of each changed file, limited to `max_lines` lines."""
     hashes = _git(["log", "--format=%H", f"-{n_commits}"]).splitlines()
     parts = []
     for commit_hash in hashes:
@@ -75,8 +72,8 @@ def _commit_file_heads(n_commits: int, head_lines: int) -> str:
         ).splitlines()
         file_parts = []
         for filepath in changed_files:
-            content = _git(["show", f"{commit_hash}:{filepath}"])
-            lines = content.splitlines()
+            diff = _git(["diff", f"{commit_hash}~1", commit_hash, "--", filepath])
+            lines = diff.splitlines()
             head = "\n".join(lines[:head_lines])
             if len(lines) > head_lines:
                 head += f"\n... ({len(lines) - head_lines} more lines)"
@@ -87,12 +84,12 @@ def _commit_file_heads(n_commits: int, head_lines: int) -> str:
 
 def _git_context() -> str:
     branch = _git(["branch", "--show-current"])
-    commit_heads = _commit_file_heads(N_COMMITS, HEAD_LINES_PER_FILE)
+    commit_diffs = _commit_file_diffs(N_COMMITS, MAX_DIFF_LINES_PER_FILE)
     diff = _current_diff()
 
     parts = [f"Branch: {branch}"]
     parts.append(
-        f"Recent commits (first {HEAD_LINES_PER_FILE} lines of each changed file):\n{commit_heads}"
+        f"Recent commits (diff per file, up to {MAX_DIFF_LINES_PER_FILE} lines each):\n{commit_diffs}"
     )
     if diff:
         parts.append(f"Uncommitted changes:\n{diff}")
