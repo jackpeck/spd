@@ -219,16 +219,16 @@ def main():
 
     # d_mlps = [32, 64, 128, 256, 512]
     # d_mlps = np.geomspace(32, 2756, 19).round().astype(int)
-    # d_mlps = np.geomspace(16, 512, 11).round().astype(int)
-    # configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
+    d_mlps = np.geomspace(16, 512, 11).round().astype(int)
+    configs = [TrainConfig(d_mlp=d_mlp, seed=seed) for d_mlp in d_mlps for seed in seeds]
 
     # d_mlps = np.geomspace(16, 512, 11).round().astype(int)
-    n_control_bits_sweep = [2, 4, 6, 8, 10, 12, 14]
-    configs = [
-        TrainConfig(d_mlp=512, seed=seed, n_control_bits=n_control_bits)
-        for n_control_bits in n_control_bits_sweep
-        for seed in seeds
-    ]
+    # n_control_bits_sweep = [2, 4, 6, 8, 10, 12, 14]
+    # configs = [
+    #     TrainConfig(d_mlp=512, seed=seed, n_control_bits=n_control_bits)
+    #     for n_control_bits in n_control_bits_sweep
+    #     for seed in seeds
+    # ]
     print(configs)
     for result in train_model.map(configs):
         pass
