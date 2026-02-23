@@ -74,9 +74,9 @@ def _commit_file_diffs(n_commits: int, max_lines: int) -> str:
         for filepath in changed_files:
             diff = _git(["diff", "-U10", f"{commit_hash}~1", commit_hash, "--", filepath])
             lines = diff.splitlines()
-            head = "\n".join(lines[:head_lines])
-            if len(lines) > head_lines:
-                head += f"\n... ({len(lines) - head_lines} more lines)"
+            head = "\n".join(lines[:max_lines])
+            if len(lines) > max_lines:
+                head += f"\n... ({len(lines) - max_lines} more lines)"
             file_parts.append(f"  {filepath}:\n{head}")
         parts.append(f"commit: {subject}\n" + "\n".join(file_parts))
     return "\n\n".join(parts)
