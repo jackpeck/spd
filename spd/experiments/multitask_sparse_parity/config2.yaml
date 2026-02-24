@@ -76,6 +76,7 @@ eval_metric_configs:
     - h.0.*
 - classname: CIMeanPerComponent
 - classname: CIDensitiesPerTask
+  log_scale: false
 - coeff: null
   classname: StochasticHiddenActsReconLoss
 - coeff: null

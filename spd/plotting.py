@@ -423,6 +423,7 @@ def plot_ci_densities_per_task(
     counts_by_module: dict[str, Tensor],
     mean_ci_by_module: dict[str, Tensor],
     top_k: int | None = 200,
+    log_scale: bool = True,
 ) -> dict[str, Image.Image]:
     """Plot CI density heatmaps broken down by task for each module.
 
@@ -464,7 +465,11 @@ def plot_ci_densities_per_task(
 
         all_freqs_list = [all_freqs] + task_freqs
         global_vmax = max(f.max() for f in all_freqs_list)
-        norm = mcolors.LogNorm(vmin=1e-4, vmax=global_vmax)
+        norm = (
+            mcolors.LogNorm(vmin=1e-4, vmax=global_vmax)
+            if log_scale
+            else mcolors.Normalize(vmin=0, vmax=global_vmax)
+        )
 
         titles = ["All Tasks"] + [f"Task {t}" for t in range(n_tasks)]
 
@@ -497,7 +502,8 @@ def plot_ci_densities_per_task(
 
         assert im is not None
         axes[0].set_ylabel("Component")
-        fig.colorbar(im, cax=cax, label="Frequency (log scale)")
+        scale_label = "log" if log_scale else "linear"
+        fig.colorbar(im, cax=cax, label=f"Frequency ({scale_label} scale)")
         title_suffix = f" (top {n_shown})" if top_k is not None and n_shown < n_components else ""
         fig.suptitle(f"{module_name}{title_suffix}", fontsize=12)
         plt.tight_layout()

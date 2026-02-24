@@ -344,6 +344,7 @@ class StochasticReconSubsetCEAndKLConfig(BaseConfig):
 class CIDensitiesPerTaskConfig(BaseConfig):
     classname: Literal["CIDensitiesPerTask"] = "CIDensitiesPerTask"
     n_bins: PositiveInt = 100
+    log_scale: bool = True
 
 
 class UVPlotsConfig(BaseConfig):

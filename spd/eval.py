@@ -153,6 +153,7 @@ def init_metric[BatchT, OutputT](
             metric = CIDensitiesPerTask(
                 model=model,
                 n_bins=cfg.n_bins,
+                log_scale=cfg.log_scale,
                 device=device,
             )
         case CI_L0Config():

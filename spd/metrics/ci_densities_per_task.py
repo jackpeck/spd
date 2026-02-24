@@ -27,6 +27,7 @@ class CIDensitiesPerTask(Metric[Any, Any]):
         self,
         model: ComponentModel[Any, Any],
         n_bins: int = 100,
+        log_scale: bool = True,
         device: str = "cpu",
     ):
         assert (
@@ -35,6 +36,7 @@ class CIDensitiesPerTask(Metric[Any, Any]):
         n_tasks: int = model.target_model.n_control_bits  # type: ignore[union-attr]
         self.n_tasks = n_tasks
         self.n_bins = n_bins
+        self.log_scale = log_scale
         self.batches_seen = 0
 
         # Per-task counts: (n_tasks, C, n_bins)
@@ -100,4 +102,4 @@ class CIDensitiesPerTask(Metric[Any, Any]):
             total = all_reduce(self.ci_counts[module_name], op=ReduceOp.SUM)
             mean_ci[module_name] = summed / total
 
-        return plot_ci_densities_per_task(reduced_counts, mean_ci)
+        return plot_ci_densities_per_task(reduced_counts, mean_ci, log_scale=self.log_scale)
