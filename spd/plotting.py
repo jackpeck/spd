@@ -421,15 +421,20 @@ def plot_component_activation_density(
 
 def plot_ci_densities_per_task(
     counts_by_module: dict[str, Tensor],
+    mean_ci_by_module: dict[str, Tensor],
+    top_k: int | None = 200,
 ) -> dict[str, Image.Image]:
     """Plot CI density heatmaps broken down by task for each module.
 
     For each module, produces a row of heatmaps: "All Tasks" + one per task.
-    Rows = components, columns = CI value bins. Color = frequency (log scale).
+    Rows = top-k components (ranked by mean CI, descending), columns = CI value bins.
+    Color = frequency (log scale).
 
     Args:
         counts_by_module: Dict mapping module name to integer count tensor of shape
             (n_tasks, n_components, n_bins).
+        mean_ci_by_module: Dict mapping module name to mean CI tensor of shape (n_components,).
+        top_k: Show only the top-k components by mean CI value. None shows all.
 
     Returns:
         Dict mapping figure names to PIL images.
@@ -447,7 +452,13 @@ def plot_ci_densities_per_task(
         counts_np = counts_tensor.cpu().numpy()  # (n_tasks, n_components, n_bins)
         n_tasks, n_components, _ = counts_np.shape
 
-        all_counts = counts_np.sum(axis=0)  # (n_components, n_bins)
+        # Select top-k components by mean CI
+        mean_ci = mean_ci_by_module[module_name].cpu().numpy()
+        n_shown = min(top_k, n_components) if top_k is not None else n_components
+        top_indices = np.argsort(mean_ci)[::-1][:n_shown]
+        counts_np = counts_np[:, top_indices, :]
+
+        all_counts = counts_np.sum(axis=0)  # (n_shown, n_bins)
         all_freqs = counts_to_freqs(all_counts)
         task_freqs = [counts_to_freqs(counts_np[t]) for t in range(n_tasks)]
 
@@ -458,7 +469,7 @@ def plot_ci_densities_per_task(
         titles = ["All Tasks"] + [f"Task {t}" for t in range(n_tasks)]
 
         n_panels = n_tasks + 1
-        fig = plt.figure(figsize=(2 * n_panels + 2, 6))
+        fig = plt.figure(figsize=(2 * n_panels + 2, 6), dpi=200)
         gs = fig.add_gridspec(1, n_panels + 1, width_ratios=[1] * n_panels + [0.05])
 
         axes = [fig.add_subplot(gs[0, 0])]
@@ -473,7 +484,7 @@ def plot_ci_densities_per_task(
                 aspect="auto",
                 cmap="viridis",
                 norm=norm,
-                extent=(0, 1, n_components, 0),
+                extent=(0, 1, n_shown, 0),
             )
             ax.set_xlabel("CI Value")
             ax.set_title(title)
@@ -487,7 +498,8 @@ def plot_ci_densities_per_task(
         assert im is not None
         axes[0].set_ylabel("Component")
         fig.colorbar(im, cax=cax, label="Frequency (log scale)")
-        fig.suptitle(module_name, fontsize=12)
+        title_suffix = f" (top {n_shown})" if top_k is not None and n_shown < n_components else ""
+        fig.suptitle(f"{module_name}{title_suffix}", fontsize=12)
         plt.tight_layout()
 
         figures[f"ci_densities_per_task/{module_name}"] = _render_figure(fig)

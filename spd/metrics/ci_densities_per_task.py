@@ -39,6 +39,8 @@ class CIDensitiesPerTask(Metric[Any, Any]):
 
         # Per-task counts: (n_tasks, C, n_bins)
         # "All tasks" counts are just the sum over the task dim.
+        # Per-task counts: (n_tasks, C, n_bins)
+        # "All tasks" counts are just the sum over the task dim.
         self.counts: dict[str, Int[Tensor, "n_tasks C n_bins"]] = {
             module_name: torch.zeros(
                 n_tasks, model.module_to_c[module_name], n_bins, dtype=torch.long, device=device
@@ -46,8 +48,17 @@ class CIDensitiesPerTask(Metric[Any, Any]):
             for module_name in model.components
         }
 
-        bin_edges = torch.linspace(0, 1, n_bins + 1, device=device)
-        self.bin_edges = bin_edges
+        # For computing exact mean CI per component
+        self.ci_sums: dict[str, Tensor] = {
+            module_name: torch.zeros(model.module_to_c[module_name], device=device)
+            for module_name in model.components
+        }
+        self.ci_counts: dict[str, Tensor] = {
+            module_name: torch.tensor(0, dtype=torch.long, device=device)
+            for module_name in model.components
+        }
+
+        self.bin_edges = torch.linspace(0, 1, n_bins + 1, device=device)
 
     @override
     def update(self, *, batch: Any, ci: CIOutputs, **_: Any) -> None:
@@ -57,7 +68,9 @@ class CIDensitiesPerTask(Metric[Any, Any]):
 
         for module_name, ci_vals in ci.lower_leaky.items():
             # ci_vals: (batch, C)
-            # Clamp to [0, 1] to handle any minor numerical overshoot
+            self.ci_sums[module_name] += ci_vals.sum(dim=0)
+            self.ci_counts[module_name] += ci_vals.shape[0]
+
             clamped = ci_vals.clamp(0.0, 1.0)
             # bucketize returns bin index for each value
             # right=False: bins are [edge_i, edge_i+1), last bin is [edge_{n-1}, edge_n]
@@ -79,9 +92,12 @@ class CIDensitiesPerTask(Metric[Any, Any]):
     def compute(self) -> dict[str, Image.Image]:
         assert self.batches_seen > 0, "No batches seen yet"
 
-        # Reduce counts across ranks
         reduced_counts: dict[str, Tensor] = {}
-        for module_name, counts in self.counts.items():
-            reduced_counts[module_name] = all_reduce(counts, op=ReduceOp.SUM)
+        mean_ci: dict[str, Tensor] = {}
+        for module_name in self.counts:
+            reduced_counts[module_name] = all_reduce(self.counts[module_name], op=ReduceOp.SUM)
+            summed = all_reduce(self.ci_sums[module_name], op=ReduceOp.SUM)
+            total = all_reduce(self.ci_counts[module_name], op=ReduceOp.SUM)
+            mean_ci[module_name] = summed / total
 
-        return plot_ci_densities_per_task(reduced_counts)
+        return plot_ci_densities_per_task(reduced_counts, mean_ci)
