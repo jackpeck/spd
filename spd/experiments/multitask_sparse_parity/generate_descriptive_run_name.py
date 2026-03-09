@@ -66,7 +66,7 @@ def _commit_file_diffs(n_commits: int, max_lines: int) -> str:
     hashes = _git(["log", "--format=%H", f"-{n_commits}"]).splitlines()
     parts = []
     for commit_hash in hashes:
-        subject = _git(["log", "--format=%s", "-1", commit_hash])
+        header = _git(["log", "--format=%h %ai %s", "-1", commit_hash])
         changed_files = _git(
             ["diff-tree", "--no-commit-id", "--name-only", "-r", commit_hash]
         ).splitlines()
@@ -78,7 +78,7 @@ def _commit_file_diffs(n_commits: int, max_lines: int) -> str:
             if len(lines) > max_lines:
                 head += f"\n... ({len(lines) - max_lines} more lines)"
             file_parts.append(f"  {filepath}:\n{head}")
-        parts.append(f"commit: {subject}\n" + "\n".join(file_parts))
+        parts.append(f"commit: {header}\n" + "\n".join(file_parts))
     return "\n\n".join(parts)
 
 
@@ -87,12 +87,16 @@ def _git_context() -> str:
     commit_diffs = _commit_file_diffs(N_COMMITS, MAX_DIFF_LINES_PER_FILE)
     diff = _current_diff()
 
-    parts = [f"Branch: {branch}"]
+    head_info = _git(["log", "--format=%h %ai", "-1"])
+
+    parts = [f"Branch: {branch}", f"HEAD: {head_info}"]
     parts.append(
         f"Recent commits (diff per file, up to {MAX_DIFF_LINES_PER_FILE} lines each):\n{commit_diffs}"
     )
     if diff:
-        parts.append(f"Uncommitted changes:\n{diff}")
+        parts.append(f"Uncommitted changes (vs HEAD {head_info}):\n{diff}")
+    else:
+        parts.append("No uncommitted changes (working tree matches HEAD).")
     return "\n\n".join(parts)
 
 
@@ -114,7 +118,8 @@ def _past_context(history: list[dict]) -> tuple[str, str]:
 
     titles_parts = []
     for entry in history[-20:]:
-        titles_parts.append(f"[{entry['timestamp']}] {entry['title']}")
+        head = entry.get("head", "?")
+        titles_parts.append(f"[{entry['timestamp']}] (HEAD={head}) {entry['title']}")
         titles_parts.append(f"  {entry['summary']}")
     past_titles = "\n".join(titles_parts)
 
@@ -122,8 +127,9 @@ def _past_context(history: list[dict]) -> tuple[str, str]:
     diff_parts = []
     for i, entry in enumerate(recent):
         n = len(history) - len(recent) + i + 1
+        head = entry.get("head", "?")
         diff = entry.get("diff", "(no diff stored)")
-        diff_parts.append(f"--- Run #{n}: {entry['title']} ---\n{diff}")
+        diff_parts.append(f"--- Run #{n}: {entry['title']} (HEAD={head}) ---\n{diff}")
     past_diffs = "\n\n".join(diff_parts)
 
     return past_titles, past_diffs
@@ -173,6 +179,8 @@ BE CAREFUL about code changes which may not obviously change a run parameter, bu
 ```
 where idx is used as an index into a list of models to train an spd run on - ENSURE YOU REFER TO THE CORRECT RUN
 
+CRITICAL: The diffs show UNCOMMITTED changes vs the committed HEAD. If a previous run's diff showed uncommitted changes to a file (e.g. switching the target model in train_spd_model.py), but the CURRENT diff does NOT include that file, it means the file has been REVERTED to its committed HEAD state. Do NOT assume the previous run's uncommitted changes are still in effect. The absence of a file from the current diff means it matches HEAD, which may be DIFFERENT from what the previous run used. Determine parameter values from the CURRENT diff, not from past run titles.
+
 Past run titles and summaries (most recent last):
 {past_titles}
 {past_diffs_section}
@@ -199,13 +207,14 @@ SUMMARY: <one sentence on what this run's config/setup is>
     return title, summary
 
 
-def _append_history(title: str, summary: str, diff: str) -> None:
+def _append_history(title: str, summary: str, diff: str, head_hash: str) -> None:
     timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     entry = {
         "timestamp": timestamp,
         "title": title,
         "summary": summary,
         "diff": diff,
+        "head": head_hash,
     }
     with open(HISTORY_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
@@ -214,10 +223,11 @@ def _append_history(title: str, summary: str, diff: str) -> None:
 def generate_run_name() -> str:
     git_context = _git_context()
     diff = _current_diff()
+    head_hash = _git(["rev-parse", "--short", "HEAD"])
     history = _load_history()
     past_titles, past_diffs = _past_context(history)
     title, summary = _call_api(git_context, past_titles, past_diffs)
-    _append_history(title, summary, diff)
+    _append_history(title, summary, diff, head_hash)
     return title
 
 
