@@ -59,7 +59,7 @@ faithfulness_warmup_lr: 0.01
 faithfulness_warmup_weight_decay: 0.1
 train_log_freq: 100
 eval_freq: 5000
-eval_batch_size: 4096
+eval_batch_size: 16384
 slow_eval_freq: 5000
 n_eval_steps: 100
 slow_eval_on_first_step: true
@@ -77,6 +77,7 @@ eval_metric_configs:
 - classname: CIMeanPerComponent
 - classname: CIDensitiesPerTask
   log_scale: false
+  n_bins: 10
 - coeff: null
   classname: StochasticHiddenActsReconLoss
 - coeff: null
