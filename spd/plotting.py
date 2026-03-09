@@ -504,8 +504,12 @@ def plot_ci_densities_per_task(
         axes[0].set_ylabel("Component")
         scale_label = "log" if log_scale else "linear"
         fig.colorbar(im, cax=cax, label=f"Frequency ({scale_label} scale)")
-        title_suffix = f" (top {n_shown})" if top_k is not None and n_shown < n_components else ""
-        fig.suptitle(f"{module_name}{title_suffix}", fontsize=12)
+        title_suffix = (
+            f" (top {n_shown} components shown)"
+            if top_k is not None and n_shown < n_components
+            else ""
+        )
+        fig.suptitle(f"CI densities by task for {module_name}{title_suffix}", fontsize=12)
         plt.tight_layout()
 
         figures[f"ci_densities_per_task/{module_name}"] = _render_figure(fig)
