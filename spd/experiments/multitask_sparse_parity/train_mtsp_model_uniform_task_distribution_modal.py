@@ -37,17 +37,18 @@ app = modal.App(
 
 @dataclass(frozen=True)
 class TrainConfig:
-    d_mlp: int = 512
+    d_mlp: int = 14
     seed: int = 0
     steps: int = 100_000
     lr: float = 1e-3
-    n_control_bits: int = 10
+    n_control_bits: int = 1
     n_task_bits: int = 30
     n_xored_bits: int = 4
-    task_distribution_decay_rate: float = 0
+    task_distribution_decay_rate: float = 0.4
     batch_sz: int = 1024
-    code_version: str = "v3"
-    eval_batch_sz: int = 4096
+    code_version: str = "v6"
+    eval_batch_sz: int = 1024
+    weight_decay: float = 0.1
     model_src: str = inspect.getsource(MultitaskSparseParityModel)
 
     def cache_key(self):
@@ -88,7 +89,7 @@ def train_model(config):
     storer.add_prefix(f"model/{config.steps}")
     key = "model"
     if not storer.exists(key):
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=config.weight_decay)
         # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         #     optimizer, T_max=config.steps, eta_min=1e-6
         # )
@@ -104,13 +105,16 @@ def train_model(config):
             optimizer.zero_grad()
 
             logits = model((task_ids, task_bits, ()))
-            loss = F.cross_entropy(logits, parity)
+            # lp_norm_loss = get_param_norm_to_p(model, p=2) * 0.0003 / 2
+            norm_loss = sum(p.abs().pow(1.5).sum() for p in model.parameters()) * 0.000001
+            ce_loss = F.cross_entropy(logits, parity)
+            loss = ce_loss + norm_loss
 
             loss.backward()
             optimizer.step()
             scheduler.step()
             if step % 1000 == 0 or step == config.steps - 1:
-                print(f"{step=}", loss.item())
+                print(f"{step=}", loss.item(), f"{ce_loss.item()=} {norm_loss.item()=}")
 
                 losses_by_task_for_step = []
                 with torch.no_grad():
@@ -233,6 +237,10 @@ def main():
     for result in train_model.map(configs):
         pass
 
+
+if __name__ == "__main__":
+    config = TrainConfig()
+    train_model.local(config)
 
 # x = np.arange(losses_by_step_and_task.shape[0]) * 100
 

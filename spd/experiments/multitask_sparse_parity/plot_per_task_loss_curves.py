@@ -8,9 +8,9 @@ from storer import Storer
 from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 
 # np.geomspace(16, 512, 11).round().astype(int) array([ 16,  23,  32,  45,  64,  91, 128, 181, 256, 362, 512])
-d_mlp = 64
+# d_mlp = 256
 storer = Storer("/modal_volume/mtsp_results/metrics/")
-config = TrainConfig(d_mlp=d_mlp, seed=0, n_control_bits=10)
+config = TrainConfig(seed=0)
 
 storer.add_datestamp_prefix()
 storer.add_prefix(f"train_mtsp_model_uniform_task_distribution/v10/{config.cache_key()}")
@@ -29,7 +29,8 @@ dataset = MultitaskSparseParityDataset(
 )
 storer.add_prefix(f"model/{config.steps}")
 key = "model"
-assert storer.exists(key), (d_mlp, storer)
+# assert storer.exists(key), (d_mlp, storer)
+assert storer.exists(key), storer
 model.load_state_dict(storer.read(key))
 losses_by_step_and_task: np.ndarray = storer.read("losses_by_step_and_task")
 
@@ -65,4 +66,5 @@ plt.plot(
 plt.plot(x, losses_by_step_and_task[:, 0], label="overall", color="red", linewidth=1)
 plt.legend()
 # plt.xscale("log")
+plt.yscale("log")
 plt.show()

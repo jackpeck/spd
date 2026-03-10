@@ -12,7 +12,7 @@ class MultitaskSparseParityDataset(IterableDataset):
         n_xored_bits,
         batch_sz,
         task_distribution_decay_rate,
-        device='cpu',
+        device="cpu",
         seed=0,
         size=None,
     ):
@@ -35,8 +35,9 @@ class MultitaskSparseParityDataset(IterableDataset):
         ).to(device)
 
         self.probs = F.normalize(
+            # (torch.arange(self.n_control_bits, dtype=torch.float) + 1) ** -(self.task_distribution_decay_rate),
             (torch.arange(self.n_control_bits, dtype=torch.float) + 1)
-            ** -(self.task_distribution_decay_rate),
+            ** -(1 + self.task_distribution_decay_rate),
             p=1,
             dim=0,
         ).to(device)
@@ -66,9 +67,9 @@ class MultitaskSparseParityModel(nn.Module):
         self.n_control_bits = n_control_bits
         self.n_task_bits = n_task_bits
         super().__init__()
-        self.l1 = nn.Linear(n_control_bits + n_task_bits, d_mlp)
+        self.l1 = nn.Linear(n_control_bits + n_task_bits, d_mlp, bias=False)
         # self.lb1 = nn.Linear(d_mlp, d_mlp)
-        self.l2 = nn.Linear(d_mlp, 2)
+        self.l2 = nn.Linear(d_mlp, 2, bias=False)
         self.d_mlp = d_mlp
 
     def forward(self, batch):
