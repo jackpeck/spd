@@ -39,17 +39,18 @@ app = modal.App(
 class TrainConfig:
     d_mlp: int = 14
     seed: int = 0
-    steps: int = 50_000
+    steps: int = 500_000
     lr: float = 1e-3
     n_control_bits: int = 1
     n_task_bits: int = 30
-    n_xored_bits: int = 2
+    n_xored_bits: int = 3
     task_distribution_decay_rate: float = 0.4
     batch_sz: int = 1024
-    code_version: str = "v8"
+    code_version: str = "v9"
     eval_batch_sz: int = 1024
     weight_decay: float = 0.1
-    norm_loss = 0.000001
+    # norm_loss: float = 0.000001
+    norm_loss: float = 0.0
     model_src: str = inspect.getsource(MultitaskSparseParityModel)
 
     def cache_key(self):
@@ -115,7 +116,12 @@ def train_model(config):
             optimizer.step()
             scheduler.step()
             if step % 1000 == 0 or step == config.steps - 1:
-                print(f"{step=}", loss.item(), f"{ce_loss.item()=} {norm_loss.item()=}")
+                print(
+                    f"{step=}",
+                    loss.item(),
+                    f"{ce_loss.item()=} {norm_loss.item()=}",
+                    f"l2norm={sum(p.abs().pow(2).sum() for p in model.parameters())}",
+                )
                 # print(f"{step=}", loss.item())
 
                 losses_by_task_for_step = []
