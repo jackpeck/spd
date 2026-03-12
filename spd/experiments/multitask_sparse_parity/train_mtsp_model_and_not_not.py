@@ -49,7 +49,7 @@ app = modal.App(
 class TrainConfig:
     d_mlp: int = 14
     seed: int = 0
-    steps: int = 500_000
+    steps: int = 100_000
     lr: float = 1e-3
     n_control_bits: int = 1
     n_task_bits: int = 30
@@ -59,7 +59,8 @@ class TrainConfig:
     code_version: str = "v1-and-not-not"
     eval_batch_sz: int = 1024
     weight_decay: float = 0.1
-    norm_loss: float = 0.0
+    # norm_loss: float = 0.000001
+    norm_loss: float = 0
     model_src: str = inspect.getsource(MultitaskSparseParityModel)
 
     def cache_key(self):
