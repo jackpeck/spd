@@ -32,6 +32,8 @@ class MultitaskSparseParityDataset(IterableDataset):
             torch.randn((self.n_control_bits, self.n_task_bits), generator=rng)
             .sort()
             .indices[:, : self.n_xored_bits]
+            .sort()
+            .values
         ).to(device)
 
         self.probs = F.normalize(

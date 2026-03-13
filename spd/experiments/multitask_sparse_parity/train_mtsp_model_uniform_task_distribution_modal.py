@@ -46,7 +46,7 @@ class TrainConfig:
     n_xored_bits: int = 2
     task_distribution_decay_rate: float = 0.4
     batch_sz: int = 1024
-    code_version: str = "v9"
+    code_version: str = "v10"
     eval_batch_sz: int = 1024
     weight_decay: float = 0.1
     # norm_loss: float = 0.000001
