@@ -37,7 +37,7 @@ app = modal.App(
 
 @dataclass(frozen=True)
 class TrainConfig:
-    d_mlp: int = 16
+    d_mlp: int = 32
     seed: int = 0
     steps: int = 100_000
     # steps: int = 10000
@@ -49,7 +49,7 @@ class TrainConfig:
     n_xored_bits: int = 2
     task_distribution_decay_rate: float = 0.4
     batch_sz: int = 1024
-    code_version: str = "v11"
+    code_version: str = "v12"
     eval_batch_sz: int = 1024
     weight_decay: float = 0.1
     # norm_loss: float = 0.000001
