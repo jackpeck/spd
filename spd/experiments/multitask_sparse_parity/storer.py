@@ -77,7 +77,8 @@ class Storer:
                     f"this only supports torch tensors and numpy arrays and dicts, found {type(value)}"
                 )
 
-        self.pull_locally_if_modal_volume(key)
+        if not overwrite_if_exists:  # performance optimization
+            self.pull_locally_if_modal_volume(key)
         path = self.get_path(key)
         if not overwrite_if_exists and path.exists():
             raise FileExistsError(f"File already exists: {path}")
