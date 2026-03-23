@@ -52,7 +52,7 @@ losses_by_task = torch.tensor(losses_by_task)
 print((losses_by_task < torch.log(torch.tensor(1.5))).float().mean())
 
 
-x = np.arange(losses_by_step_and_task.shape[0]) * 1000
+x = np.arange(losses_by_step_and_task.shape[0]) * config.eval_steps
 
 n_lines = losses_by_step_and_task.shape[1] - 1
 plt.gca().set_prop_cycle(color=plt.cm.viridis(np.linspace(0, 1, n_lines)))
@@ -66,5 +66,5 @@ plt.plot(
 plt.plot(x, losses_by_step_and_task[:, 0], label="overall", color="red", linewidth=1)
 plt.legend()
 # plt.xscale("log")
-plt.yscale("log")
+# plt.yscale("log")
 plt.show()

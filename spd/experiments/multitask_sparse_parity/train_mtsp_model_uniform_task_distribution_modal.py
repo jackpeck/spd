@@ -39,7 +39,10 @@ app = modal.App(
 class TrainConfig:
     d_mlp: int = 14
     seed: int = 0
-    steps: int = 100_000
+    steps: int = 1_000
+    # steps: int = 5000
+    eval_steps: int = 1000
+    # eval_steps: int = 50
     lr: float = 1e-3
     n_control_bits: int = 2
     n_task_bits: int = 30
@@ -51,6 +54,8 @@ class TrainConfig:
     weight_decay: float = 0.1
     # norm_loss: float = 0.000001
     norm_loss: float = 0.0
+    save_model_weights_on_eval_step: bool = False
+    # save_model_weights_on_eval_step: bool = True
     model_src: str = inspect.getsource(MultitaskSparseParityModel)
 
     def cache_key(self):
@@ -115,7 +120,11 @@ def train_model(config):
             loss.backward()
             optimizer.step()
             scheduler.step()
-            if step % 1000 == 0 or step == config.steps - 1:
+            if step % config.eval_steps == 0 or step == config.steps - 1:
+                if config.save_model_weights_on_eval_step:
+                    state = model.state_dict()
+                    storer.write(f"{step=}/model", state, overwrite_if_exists=True)
+
                 print(
                     f"{step=}",
                     loss.item(),
