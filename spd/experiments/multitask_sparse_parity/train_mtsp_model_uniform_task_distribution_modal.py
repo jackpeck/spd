@@ -41,7 +41,7 @@ class TrainConfig:
     seed: int = 0
     steps: int = 100_000
     # steps: int = 10000
-    # eval_steps: int = 500
+    # eval_steps: int = 200
     eval_steps: int = 1000
     lr: float = 1e-3
     n_control_bits: int = 2
@@ -114,7 +114,7 @@ def train_model(config):
             logits = model((task_ids, task_bits, ()))
             # lp_norm_loss = get_param_norm_to_p(model, p=2) * 0.0003 / 2
             norm_loss = sum(p.abs().pow(1.5).sum() for p in model.parameters()) * config.norm_loss
-            ce_loss = F.cross_entropy(logits, parity)
+            ce_loss = F.binary_cross_entropy_with_logits(logits, parity.float())
             loss = ce_loss + norm_loss
 
             loss.backward()
@@ -138,7 +138,7 @@ def train_model(config):
                 with torch.no_grad():
                     task_ids, task_bits, parity = dataset.get_batch(batch_sz=config.eval_batch_sz)
                     logits = model((task_ids, task_bits, ()))
-                    val_loss = F.cross_entropy(logits, parity)
+                    val_loss = F.binary_cross_entropy_with_logits(logits, parity.float())
                     losses_by_task_for_step.append(val_loss.item())
 
                     for i in range(config.n_control_bits):
@@ -146,7 +146,7 @@ def train_model(config):
                             batch_sz=config.eval_batch_sz, task_ids=torch.tensor(i)
                         )
                         logits = model((task_ids, task_bits, ()))
-                        loss = F.cross_entropy(logits, parity)
+                        loss = F.binary_cross_entropy_with_logits(logits, parity.float())
                         # print(i, loss.item())
                         losses_by_task_for_step.append(loss.item())
 
@@ -164,7 +164,7 @@ def train_model(config):
     torch.manual_seed(0)
     task_ids, task_bits, parity = dataset.get_batch(batch_sz=1024)
     logits = model((task_ids, task_bits, ()))
-    val_loss = F.cross_entropy(logits, parity)
+    val_loss = F.binary_cross_entropy_with_logits(logits, parity.float())
     print(val_loss)
 
 

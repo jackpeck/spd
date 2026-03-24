@@ -75,8 +75,9 @@ class MultitaskSparseParityModel(nn.Module):
         # self.l2 = nn.Linear(d_mlp, 2, bias=False)
         # self.l2 = torch.ones(d_mlp)
         self.d_mlp = d_mlp
+        self.l2_bce = nn.Linear(d_mlp, 1, bias=False)
 
-        self.l2_fix = ((torch.arange(d_mlp) % 2) * 2 - 1).float()
+        # self.l2_fix = ((torch.arange(d_mlp) % 2) * 2 - 1).float()
 
     def forward(self, batch):
         task_ids, task_bits, targets = batch
@@ -90,6 +91,9 @@ class MultitaskSparseParityModel(nn.Module):
 
         # x = x.sum(-1)
         # x = (torch.arange(10) % 2) * 2 - 1
-        x = einops.einsum(self.l2_fix, x, "d, b d -> b")
+        # x = einops.einsum(self.l2_fix, x, "d, b d -> b")
 
-        return torch.stack([x, -x], dim=-1)
+        # return torch.stack([x, -x], dim=-1)
+
+        x = self.l2_bce(x).squeeze(-1)
+        return x
