@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import subprocess
@@ -18,6 +19,11 @@ from spd.simple_trainer import optimize
 from spd.utils.general_utils import save_pre_run_info
 from spd.utils.run_utils import ExecutionStamp
 from spd.utils.wandb_utils import init_wandb
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--target-wandb-run", required=True)
+parser.add_argument("--run-name", default=None)
+args = parser.parse_args()
 
 
 def get_least_loaded_gpu() -> int:
@@ -42,51 +48,15 @@ else:
     device = torch.device("cpu")
 
 spd_config = Config.from_file("config2.yaml")
-run_name = spd_config.wandb_run_name or generate_run_name()
+run_name = args.run_name or spd_config.wandb_run_name or generate_run_name()
 print(f"{run_name=}")
 
 slurm_job_id = os.environ.get("SLURM_JOB_ID")
 if slurm_job_id:
     subprocess.run(["scontrol", "update", f"JobId={slurm_job_id}", f"JobName={run_name}"])
 
-# target_model_wandb_run_path = "mutate/multitask-sparse-parity/5rvs7hyq"
-
-# seed=0
-# n_control_bits=10
-# a = """
-# d_mlp=16 mutate/multitask-sparse-parity/runs/7xb3yyaf
-# d_mlp=23 mutate/multitask-sparse-parity/runs/ycpc59g7
-# d_mlp=32 mutate/multitask-sparse-parity/runs/gatrc939
-# d_mlp=45 mutate/multitask-sparse-parity/runs/uvy85jm3
-# d_mlp=64 mutate/multitask-sparse-parity/runs/oxw7olwc
-# d_mlp=91 mutate/multitask-sparse-parity/runs/fdsbgws9
-# d_mlp=128 mutate/multitask-sparse-parity/runs/zdmyecjh
-# d_mlp=181 mutate/multitask-sparse-parity/runs/a51ve1e8
-# d_mlp=256 mutate/multitask-sparse-parity/runs/c95cvma0
-# d_mlp=362 mutate/multitask-sparse-parity/runs/shej8fad
-# d_mlp=512 mutate/multitask-sparse-parity/runs/dcs8b6mq
-# """
-# a2 = [l.split(" ") for l in a.split("\n")[1:]]
-
-# idx = 6
-# d_mlp_str, target_model_wandb_run_path = a2[idx]
-
-
-# d_mlp_str, target_model_wandb_run_path = (
-#     "d_mlp=128",
-#     # "mutate/multitask-sparse-parity/runs/t1ndgltv",  # d_mlp=128, n_control_bits=5
-#     # "mutate/multitask-sparse-parity/runs/9h2kcm8r",  # d_mlp=128, n_control_bits=1
-#     "mutate/multitask-sparse-parity/runs/zdmyecjh",  # d_mlp=128, n_control_bits=10
-# )
-
-d_mlp_str, target_model_wandb_run_path = (
-    "d_mlp=14",
-    "mutate/multitask-sparse-parity/runs/oniknm0t",  # d_mlp=14, n_control_bits=2, parity=2
-)
-
-print(f"{d_mlp_str=}, {target_model_wandb_run_path=}")
-
-# target_model_wandb_run_path = "mutate/multitask-sparse-parity/5rvs7hyq"
+target_model_wandb_run_path = args.target_wandb_run
+print(f"{target_model_wandb_run_path=}")
 
 api = wandb.Api()
 run = api.run(target_model_wandb_run_path)
