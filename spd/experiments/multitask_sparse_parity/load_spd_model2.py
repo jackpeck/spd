@@ -3,6 +3,8 @@ import os
 import tempfile
 
 import einops
+import matplotlib.pyplot as plt
+import seaborn as sns
 import torch
 import torch.nn.functional as F
 import wandb
@@ -19,7 +21,7 @@ from spd.models.component_model import (
 from spd.models.components import make_mask_infos
 from spd.utils.module_utils import expand_module_patterns
 
-run_info = SPDRunInfo.from_path("wandb:mutate/spd/runs/s-b71c2758")
+run_info = SPDRunInfo.from_path("wandb:mutate/spd/runs/s-387b3d65")
 config = run_info.config
 
 target_model_wandb_run_path = (
@@ -35,21 +37,13 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(os.path.join(tmpdir, "train_config.json")) as f:
         target_config = TrainConfig(**json.load(f))
 
-# artifact_path = load_wandb_model_artifact(target_model_wandb_run_path)
-# target_model = MultitaskSparseParityModel()
-# target_model.load_state_dict(torch.load(artifact_path)) # target model weights are overwritten in model.load_state_dict(comp_model_weights)
-
 artifact_path = load_wandb_model_artifact(target_model_wandb_run_path)
 target_model = MultitaskSparseParityModel(
     n_control_bits=target_config.n_control_bits,
     n_task_bits=target_config.n_task_bits,
     d_mlp=target_config.d_mlp,
 )
-# target_model.load_state_dict(torch.load(artifact_path)) # target model weights are overwritten in model.load_state_dict(comp_model_weights)
-
-# target_model.load_state_dict(torch.load(artifact_path))
-
-
+# target model weights are overwritten in model.load_state_dict(comp_model_weights) so don't need to load here
 target_model.eval()
 target_model.requires_grad_(False)
 module_path_info = expand_module_patterns(target_model, config.all_module_info)
@@ -67,9 +61,7 @@ comp_model_weights = torch.load(run_info.checkpoint_path, map_location="cpu", we
 handle_deprecated_state_dict_keys_(comp_model_weights)
 model.load_state_dict(comp_model_weights)
 
-
 print(model)
-
 
 dataloader = DataLoader(
     MultitaskSparseParityDataset(
@@ -85,8 +77,8 @@ dataloader = DataLoader(
 batch = next(iter(dataloader))
 task_ids, task_bits, targets = batch
 
-# loss = F.cross_entropy(model(batch), targets)
-# print(loss)
+loss = F.cross_entropy(model(batch), targets)
+print(loss)
 
 
 out = model(batch, cache_type="input")
@@ -112,7 +104,7 @@ ci = torch.cat([ci_dict[layer] for layer in layer_names], dim=1)
 
 print(ci.shape)
 
-component_ci_threshold = 0.4
+component_ci_threshold = 0.9
 mask_infos = make_mask_infos(
     # component_masks={k: torch.ones_like(v) for k, v in ci_dict.items()},
     # component_masks={k: v for k, v in ci_dict.items()},
@@ -122,7 +114,7 @@ mask_infos = make_mask_infos(
 
 logits_using_components = model(batch, cache_type="input", mask_infos=mask_infos).output
 loss_using_components = loss = F.cross_entropy(logits_using_components, targets)
-print(loss_using_components)
+print(f"{loss_using_components=}")
 
 # loss_by_token_using_components = F.cross_entropy(
 #     einops.rearrange(logits_using_components[:, :-1], "b seq vocab -> b vocab seq"),
@@ -134,3 +126,15 @@ print(loss_using_components)
 
 for k, v in ci_dict.items():
     print(k, (v > component_ci_threshold).float().mean())
+
+
+components = model.components["l1"]
+einops.einsum(components.V[:, 0], components.U[0], "d_in, d_out -> d_out d_in")
+
+idx = 0
+sns.heatmap(
+    einops.einsum(components.V[:, idx], components.U[idx], "d_in, d_out -> d_out d_in").detach(),
+    cmap="RdBu",
+    center=0,
+)
+plt.show()
