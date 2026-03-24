@@ -21,7 +21,8 @@ from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 # n_control_bits_sweep = [2, 4, 6, 8, 10, 12, 14]
 # np.geomspace(16, 512, 11).round().astype(int) array([ 16,  23,  32,  45,  64,  91, 128, 181, 256, 362, 512])
 
-config = TrainConfig(d_mlp=512, seed=0, n_control_bits=10)
+# config = TrainConfig(d_mlp=512, seed=0, n_control_bits=10)
+config = TrainConfig()
 print(config)
 storer = Storer("/modal_volume/mtsp_results/metrics/")
 storer.add_datestamp_prefix()
@@ -56,6 +57,11 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(storer_path, "w") as f:
         f.write(str(storer))
     wandb.save(storer_path, base_path=tmpdir)
+
+    cache_key_path = os.path.join(tmpdir, "config.cache_key().txt")
+    with open(cache_key_path, "w") as f:
+        f.write(config.cache_key())
+    wandb.save(cache_key_path, base_path=tmpdir)
 
     for step_idx, step in enumerate(range(0, config.steps, 1000)):
         log_dict = {"step": step, "loss/overall": losses_by_step_and_task[step_idx, 0]}

@@ -72,11 +72,16 @@ if slurm_job_id:
 # d_mlp_str, target_model_wandb_run_path = a2[idx]
 
 
+# d_mlp_str, target_model_wandb_run_path = (
+#     "d_mlp=128",
+#     # "mutate/multitask-sparse-parity/runs/t1ndgltv",  # d_mlp=128, n_control_bits=5
+#     # "mutate/multitask-sparse-parity/runs/9h2kcm8r",  # d_mlp=128, n_control_bits=1
+#     "mutate/multitask-sparse-parity/runs/zdmyecjh",  # d_mlp=128, n_control_bits=10
+# )
+
 d_mlp_str, target_model_wandb_run_path = (
-    "d_mlp=128",
-    # "mutate/multitask-sparse-parity/runs/t1ndgltv",  # d_mlp=128, n_control_bits=5
-    # "mutate/multitask-sparse-parity/runs/9h2kcm8r",  # d_mlp=128, n_control_bits=1
-    "mutate/multitask-sparse-parity/runs/zdmyecjh",  # d_mlp=128, n_control_bits=10
+    "d_mlp=14",
+    "mutate/multitask-sparse-parity/runs/oniknm0t",  # d_mlp=14, n_control_bits=2, parity=2
 )
 
 print(f"{d_mlp_str=}, {target_model_wandb_run_path=}")

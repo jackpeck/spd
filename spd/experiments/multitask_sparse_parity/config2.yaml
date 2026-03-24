@@ -16,7 +16,7 @@ sigmoid_type: leaky_hard
 #     C: 1000
 module_info:
   - module_pattern: "l1*"
-    C: 10000
+    C: 1000
 identity_module_info: null
 use_delta_component: true
 loss_metric_configs:
