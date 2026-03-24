@@ -37,9 +37,9 @@ app = modal.App(
 
 @dataclass(frozen=True)
 class TrainConfig:
-    d_mlp: int = 32
+    d_mlp: int = 12
     seed: int = 0
-    steps: int = 100_000
+    steps: int = 50_000
     # steps: int = 10000
     # eval_steps: int = 200
     eval_steps: int = 1000
@@ -49,7 +49,7 @@ class TrainConfig:
     n_xored_bits: int = 2
     task_distribution_decay_rate: float = 0.4
     batch_sz: int = 1024
-    code_version: str = "v12"
+    code_version: str = "v13"
     eval_batch_sz: int = 1024
     weight_decay: float = 0.1
     # norm_loss: float = 0.000001
@@ -114,7 +114,7 @@ def train_model(config):
             logits = model((task_ids, task_bits, ()))
             # lp_norm_loss = get_param_norm_to_p(model, p=2) * 0.0003 / 2
             norm_loss = sum(p.abs().pow(1.5).sum() for p in model.parameters()) * config.norm_loss
-            ce_loss = F.binary_cross_entropy_with_logits(logits, parity.float())
+            ce_loss = F.binary_cross_entropy_with_logits(-logits, parity.float())
             loss = ce_loss + norm_loss
 
             loss.backward()
@@ -138,7 +138,7 @@ def train_model(config):
                 with torch.no_grad():
                     task_ids, task_bits, parity = dataset.get_batch(batch_sz=config.eval_batch_sz)
                     logits = model((task_ids, task_bits, ()))
-                    val_loss = F.binary_cross_entropy_with_logits(logits, parity.float())
+                    val_loss = F.binary_cross_entropy_with_logits(-logits, parity.float())
                     losses_by_task_for_step.append(val_loss.item())
 
                     for i in range(config.n_control_bits):
@@ -146,7 +146,7 @@ def train_model(config):
                             batch_sz=config.eval_batch_sz, task_ids=torch.tensor(i)
                         )
                         logits = model((task_ids, task_bits, ()))
-                        loss = F.binary_cross_entropy_with_logits(logits, parity.float())
+                        loss = F.binary_cross_entropy_with_logits(-logits, parity.float())
                         # print(i, loss.item())
                         losses_by_task_for_step.append(loss.item())
 
@@ -164,7 +164,7 @@ def train_model(config):
     torch.manual_seed(0)
     task_ids, task_bits, parity = dataset.get_batch(batch_sz=1024)
     logits = model((task_ids, task_bits, ()))
-    val_loss = F.binary_cross_entropy_with_logits(logits, parity.float())
+    val_loss = F.binary_cross_entropy_with_logits(-logits, parity.float())
     print(val_loss)
 
 
