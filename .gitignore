@@ -180,3 +180,4 @@ plots/
 venv-cmd
 .run_name_history.jsonl
 slurm_logs/
+spd_checkpoint_cache/

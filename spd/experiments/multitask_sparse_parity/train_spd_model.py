@@ -108,10 +108,11 @@ logger.info(f"Run ID: {execution_stamp.run_id}")
 logger.info(f"Output directory: {out_dir}")
 
 if spd_config.wandb_project:
+    wandb_run_id = f"{args.run_name}-{execution_stamp.run_id}" if args.run_name else execution_stamp.run_id
     init_wandb(
         config=spd_config,
         project=spd_config.wandb_project,
-        run_id=execution_stamp.run_id,
+        run_id=wandb_run_id,
         name=run_name,
         tags=[],
     )
