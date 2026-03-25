@@ -41,7 +41,8 @@ class TrainConfig:
     seed: int = 0
     steps: int = 100_000
     # steps: int = 10000
-    # eval_steps: int = 200
+    # steps: int = 3000
+    # eval_steps: int = 50
     eval_steps: int = 1000
     lr: float = 1e-3
     n_control_bits: int = 2

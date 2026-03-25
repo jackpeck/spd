@@ -74,10 +74,15 @@ class SPDCheckpointResult:
     model: ComponentModel
 
 
-def _fetch_and_cache_checkpoint(
-    step: int, cache_key: str, storer: "Storer"
-) -> tuple[int, str, dict, "Config"] | None:
-    """Fetch from wandb, cache state dict + metadata via Storer, return (step, path, state_dict, spd_config)."""
+def _spd_config_hash(spd_config) -> str:
+    import hashlib
+
+    dump = json.dumps(spd_config.model_dump(mode="json"), sort_keys=True)
+    return hashlib.sha256(dump.encode()).hexdigest()[:16]
+
+
+def _find_matching_run(step: int, cache_key: str, local_spd_config):
+    """Find the wandb SPD run for this step whose config matches local_spd_config."""
     from spd.configs import Config
 
     api = wandb.Api()
@@ -86,12 +91,76 @@ def _fetch_and_cache_checkpoint(
     if not runs:
         print(f"No SPD run found for step {step} (searched for name={run_name}), skipping")
         return None
-    assert len(runs) == 1, f"Expected 1 run for {run_name}, found {len(runs)}"
 
-    spd_model_path = f"wandb:mutate/spd/runs/{runs[0].id}"
-    target_model_path = f"mutate/multitask-sparse-parity/runs/{cache_key}_step{step}"
+    local_hash = _spd_config_hash(local_spd_config)
+    for run in runs:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            try:
+                run.file("final_config.yaml").download(root=tmpdir, replace=True)
+            except Exception:
+                continue
+            run_config = Config.from_file(os.path.join(tmpdir, "final_config.yaml"))
+        if _spd_config_hash(run_config) == local_hash:
+            return run
+    print(f"No SPD run for step {step} matches current config2.yaml, skipping")
+    return None
 
-    _, spd_config, model = load_spd_model(target_model_path, spd_model_path)
+
+def _load_spd_model_from_wandb_run(wandb_run, target_model_path: str, train_config: TrainConfig):
+    """Load SPD model directly from a wandb Run object, bypassing SPDRunInfo path parsing."""
+    from spd.configs import Config
+    from spd.utils.wandb_utils import download_wandb_file, fetch_wandb_run_dir
+
+    run_dir = fetch_wandb_run_dir(wandb_run.id)
+    config_path = download_wandb_file(wandb_run, run_dir, "final_config.yaml")
+    spd_config = Config.from_file(config_path)
+
+    # Find the checkpoint file - download if needed
+    checkpoint_files = sorted(run_dir.glob("model_*.pth"))
+    if not checkpoint_files:
+        # Download the latest model checkpoint from wandb
+        wandb_files = [f for f in wandb_run.files() if f.name.startswith("model_") and f.name.endswith(".pth")]
+        assert wandb_files, f"No model checkpoint found in wandb run {wandb_run.id}"
+        latest = sorted(wandb_files, key=lambda f: f.name)[-1]
+        download_wandb_file(wandb_run, run_dir, latest.name)
+        checkpoint_files = sorted(run_dir.glob("model_*.pth"))
+    checkpoint_path = checkpoint_files[-1]
+
+    target_model = MultitaskSparseParityModel(
+        n_control_bits=train_config.n_control_bits,
+        n_task_bits=train_config.n_task_bits,
+        d_mlp=train_config.d_mlp,
+    )
+    target_model.eval()
+    target_model.requires_grad_(False)
+    module_path_info = expand_module_patterns(target_model, spd_config.all_module_info)
+
+    model = ComponentModel(
+        target_model=target_model,
+        module_path_info=module_path_info,
+        ci_fn_hidden_dims=spd_config.ci_fn_hidden_dims,
+        ci_fn_type=spd_config.ci_fn_type,
+        sigmoid_type=spd_config.sigmoid_type,
+    )
+
+    comp_model_weights = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    handle_deprecated_state_dict_keys_(comp_model_weights)
+    model.load_state_dict(comp_model_weights)
+
+    return spd_config, model
+
+
+def _fetch_and_cache_checkpoint(
+    step: int, cache_key: str, storer: "Storer", local_spd_config, train_config: TrainConfig
+) -> tuple[int, str, dict, "Config"] | None:
+    """Fetch from wandb, cache state dict + metadata via Storer, return (step, path, state_dict, spd_config)."""
+    run = _find_matching_run(step, cache_key, local_spd_config)
+    if run is None:
+        return None
+
+    spd_model_path = f"wandb:mutate/spd/runs/{run.id}"
+
+    spd_config, model = _load_spd_model_from_wandb_run(run, None, train_config)
 
     state_dict = model.state_dict()
     storer.write(f"step={step}/model", state_dict)
@@ -146,9 +215,13 @@ def load_spd_models_for_checkpoints(
 
     from storer import Storer
 
+    from spd.configs import Config
+
     cache_key = train_config.cache_key()
     steps = get_steps_to_upload(train_config, upload_config)
-    storer = Storer(f"./spd_checkpoint_cache/{cache_key}")
+    spd_config = Config.from_file("config2.yaml")
+    spd_hash = _spd_config_hash(spd_config)
+    storer = Storer(f"./spd_checkpoint_cache/{cache_key}/{spd_hash}")
 
     cached_steps = [s for s in steps if storer.exists(f"step={s}/model")]
     uncached_steps = [s for s in steps if s not in cached_steps]
@@ -159,7 +232,7 @@ def load_spd_models_for_checkpoints(
 
     with ThreadPoolExecutor() as executor:
         futures = [
-            executor.submit(_fetch_and_cache_checkpoint, s, cache_key, storer)
+            executor.submit(_fetch_and_cache_checkpoint, s, cache_key, storer, spd_config, train_config)
             for s in uncached_steps
         ]
     loaded.extend(f.result() for f in futures)
