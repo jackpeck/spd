@@ -18,7 +18,7 @@ from train_mtsp_model_uniform_task_distribution_modal import TrainConfig
 
 @dataclass
 class UploadCheckpointsConfig:
-    upload_every_n_steps: int = 10_000
+    upload_every_n_steps: int = 100
 
 
 def get_steps_to_upload(

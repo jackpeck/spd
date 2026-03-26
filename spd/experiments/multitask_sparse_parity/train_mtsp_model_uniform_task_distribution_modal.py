@@ -39,11 +39,12 @@ app = modal.App(
 class TrainConfig:
     d_mlp: int = 14
     seed: int = 0
-    steps: int = 100_000
-    # steps: int = 10000
+    # steps: int = 100_000
+    steps: int = 2000
     # steps: int = 3000
     # eval_steps: int = 50
-    eval_steps: int = 1000
+    eval_steps: int = 10
+    # eval_steps: int = 1000
     lr: float = 1e-3
     n_control_bits: int = 2
     n_task_bits: int = 30
